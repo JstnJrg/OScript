@@ -50,6 +50,8 @@ tkzr            	:: tokenizer.Tokenizer
 tk_scan				:: tokenizer.scan
 tk_init				:: tokenizer.init
 tk_create			:: tokenizer.create
+tk_save_state       :: tokenizer.save_state
+tk_restore_state    :: tokenizer.restore_state
 
 // opcode
 get_operator_name	:: opcode.get_operator_name

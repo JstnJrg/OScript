@@ -20,12 +20,18 @@ AS_INT_PTR      	   :: #force_inline proc "contextless" (value: ^Value) -> Int  
 AS_BOOL_PTR     	   :: #force_inline proc "contextless" (value: ^Value) -> bool  	 { return value.variant.(bool) }
 AS_OBJECT_PTR   	   :: #force_inline proc "contextless" (value: ^Value) -> ^Object    { return value.variant.(^Object)}
 AS_SYMID_PTR           :: #force_inline proc "contextless" (value: ^Value) -> Uint       { return value.variant.(Uint)}
+AS_OID_PTR             :: #force_inline proc "contextless" (value: ^Value) -> ^Oid       { return &value.variant.(Oid)}
+
 
 AS_OP_FUNC_PTR		   :: #force_inline proc "contextless" (value: ^Value) -> NativeFn  { return value.variant.(NativeFn)  }
 AS_OP_FUNCP_PTR		   :: #force_inline proc "contextless" (value: ^Value) -> ^NativeFn  { return &value.variant.(NativeFn) }
 
 
+AS_TRANSFORM2_PTR  :: #force_inline proc "contextless" (value_p: ^Value) -> ^mat2x3 { return (^mat2x3)(&value_p.variant.(_mem)) }
+
+
 AS_RECT2_PTR  :: #force_inline proc "contextless" (value_p: ^Value) -> ^Rect2 { return (^Rect2)(&value_p.variant.(_mem)) }
+
 
 AS_RECT2_PTRV  :: #force_inline proc "contextless" (value_p: ^Value) -> Rect2 {
 	return (^Rect2)(&value_p.variant.(_mem))^
@@ -65,6 +71,6 @@ AS_VECTOR2     :: #force_inline proc "contextless" (value: Value) -> ^Vector2d {
 }
 
 
-AS_TRANSFORM2_PTR      :: #force_inline proc "contextless" (value: ^Value) -> ^Transform2D { return (^Transform2D)(AS_OBJECT_PTR(value)) }
+AS_ANY_PTR             :: #force_inline proc "contextless" (value: ^Value) -> ^Any       { return (^Any)(AS_OBJECT_PTR(value))}
 
-AS_TRANSFORM2_DATA_PTR :: #force_inline proc "contextless" (value: ^Value) -> ^mat2x3 { return &(^Transform2D)(AS_OBJECT_PTR(value)).data }
+

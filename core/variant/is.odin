@@ -12,13 +12,18 @@ IS_OBJECT   :: #force_inline proc "contextless" (value: Value) -> bool { return 
 IS_GENERIC_PTR  :: #force_inline proc "contextless" (value_p: ^Value, type: ValueType) -> bool { return value_p.type == type }
 
 
-IS_FLOAT_PTR    :: #force_inline proc "contextless" (value: ^Value) -> bool { return value.type == .FLOAT_VAL}
-IS_BOOL_PTR     :: #force_inline proc "contextless" (value: ^Value) -> bool { return value.type == .BOOL_VAL}
-IS_NIL_PTR      :: #force_inline proc "contextless" (value: ^Value) -> bool { return value.type == .NIL_VAL}
+IS_FLOAT_PTR    :: #force_inline proc "contextless" (value: ^Value) -> bool { return value.type == .FLOAT_VAL }
+IS_BOOL_PTR     :: #force_inline proc "contextless" (value: ^Value) -> bool { return value.type == .BOOL_VAL  }
+IS_NIL_PTR      :: #force_inline proc "contextless" (value: ^Value) -> bool { return value.type == .NIL_VAL   }
+IS_ANY_PTR      :: #force_inline proc "contextless" (value: ^Value) -> bool { return value.type == .OBJ_ANY   }
 
 IS_VECTOR2_PTR :: #force_inline proc "contextless" (value: ^Value) -> bool { return value.type ==  .VECTOR2_VAL }
 IS_COLOR_PTR   :: #force_inline proc "contextless" (value: ^Value) -> bool { return value.type ==  .COLOR_VAL }
 IS_RECT2_PTR   :: #force_inline proc "contextless" (value: ^Value) -> bool { return value.type ==  .RECT2_VAL }
+IS_OID_PTR     :: #force_inline proc "contextless" (value_p: ^Value) -> bool  { return value_p.type == .OID_VAL } 
+
+IS_TRANSFOMR2_PTR   :: #force_inline proc "contextless" (value: ^Value) -> bool { return value.type ==  .TRANSFORM2_VAL }
+
 
 IS_OBJECT_PTR   :: #force_inline proc "contextless" (value: ^Value) -> bool { return value.type >= .OBJ_VAL   }
 
@@ -76,5 +81,5 @@ IS_BOOL_PTRV     :: #force_inline proc "contextless" (value: ^Value, n : ^$T) ->
 }
 
 
-IS_TRANSFORM2_PTR          :: #force_inline proc(value_p: ^Value) -> bool { return IS_GENERIC_PTR(value_p,.OBJ_TRANSFORM2) }
+IS_TRANSFORM2_PTR          :: #force_inline proc(value_p: ^Value) -> bool { return value_p.type == .TRANSFORM2_VAL }
 

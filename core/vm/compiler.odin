@@ -35,7 +35,8 @@ OscriptGlobal   :: struct { global : ^GlobalScope }
 ImportManager   :: struct { import_map : map[string]u32 }
 
 
-Scope   :: struct {
+Scope   :: struct 
+{
 	locals     : map[string]Local,
 	enclosing  : ^Scope,
 	index_start: int,
@@ -43,12 +44,11 @@ Scope   :: struct {
 	depth      : int    
 }
 
-
-Dependecies :: struct { 
+Dependecies :: struct 
+{ 
 	imports     : map[u32]Localization,
 	enclosing   : ^Dependecies
  }
-
 
 
 GlobalScope :: struct { global_vars : map[string]Global }
@@ -63,17 +63,15 @@ Local    :: struct {
 }
 
 Global :: struct {
-	index : int,
-	kind  : IdentifierType,
-	pos   : Localization
+	index   : int,
+	kind    : IdentifierType,
+	pos     : Localization
 }
 
 Loop  :: struct {
 	scope_depth : int, //usado para capturar as variaveis locais de todos os escopos
 	enclosing   : ^Loop
 }
-
-
 
 begin_vm_compiler :: proc() { begin_compiler_allocators(); create_compiler(); create_oglobal() }
 end_vm_compiler   :: proc() { destroy_compiler();destroy_oglobal(); end_compiler_allocators() }
@@ -83,6 +81,9 @@ create_compiler :: proc() {
 
 	current_compiler = new(Compiler,compiler_data_default_allocator())
 	current_imanager = new(ImportManager,compiler_data_default_allocator())
+
+	oscript_assert_mode(current_compiler != nil)
+	oscript_assert_mode(current_imanager != nil)
 
 	assert( current_compiler != nil, "compiler is nullptr.")
 	assert( current_imanager != nil, "ImportManager is nullptr.")
@@ -261,6 +262,12 @@ get_loop_scope_depth  :: proc() -> int { return current_compiler.loop_data.scope
 
 scope_print       :: proc(){
 	cscope := current_compiler.cscope
+
+	if cscope == nil {
+		println("\n ========== GLOABL SCOPE ========== \n")
+		return
+	}
+
 	println("\n ========== SCOPE DATA ========== \n")
 	println("local_count: ",cscope.local_count)
 	println("index_start: ",cscope.index_start)
@@ -350,8 +357,6 @@ end_loop :: proc() {
 	current_compiler.loop_depth -= 1 
 	current_compiler.loop_data   = current_compiler.loop_data.enclosing 
 }
-
-
 
 
 kind2string :: proc(kind : IdentifierType) -> string

@@ -11,6 +11,12 @@ _ZERO		:: 	Vec2{0,0}
 _ONE 		:: 	Vec2{1,1}
 
 
+
+
+// Nota(jstn)
+// set distance = normal.dot(point) -> devolve a distancia a um plano ou recta
+
+
 _abs		:: proc "contextless" (a: ^Vec2) -> Vec2  { return Vec2{linalg.abs(a.x),linalg.abs(a.y)}}
 _aspect 	:: proc "contextless" (a: ^Vec2) -> Float { return a.x/a.y}
 

@@ -1,7 +1,12 @@
 package OScriptVariant
 
-ImportID        		:: distinct int
-ImportType              :: enum u8 {NATIVE,CLASS,MODULE}
+
+ImportType              :: enum u8 {
+	NATIVE, //abstracta, usada para IO/Math,FILEACESSS etc.
+	CLASS, //mapeia para uma class STRING/TRANSFORM2D etc.
+	MODULE //Modulo, que é essencialmente um outro ficheiro OScript.
+}
+ImportID        		:: distinct i16
 ImportMapa              :: [dynamic]^ImportInfo
 
 @(private="file")  current_import_allocator : Allocator
@@ -16,6 +21,7 @@ ImportInfo    :: struct {
 	hash     : u32,
 	setter   : ImportSetGet,
 	getter   : ImportSetGet,
+
 	globals  : Table,
 }
 
@@ -40,9 +46,11 @@ register_import_importID  :: proc(name: string, hash: u32 = 0) -> ImportID {
 	append(&current_import_mapa,iinfo)
 	id    := ImportID(len(current_import_mapa)-1)
 
+	gsid 	     := register_symbol_BD(name)
 	iinfo.id      = id
 	iinfo.type    = .MODULE
-	iinfo.name    = str_clone(name,current_import_allocator)
+
+	iinfo.name    = get_symbol_str_BD(gsid)
 	iinfo.hash    = hash
 	iinfo.getter  = import_get
 	iinfo.setter  = import_set

@@ -1,22 +1,6 @@
+#+private
+
 package OScriptVM
-
-// MyClass.new(1,2,3)
-// _new  :: proc(bp: BindPower) -> ^Node {
-
-// 	loc       := peek_clocalization(); advance()
-// 	namednode := expression(.INDEXING)
-
-// 	println(peek_c(), bp)
-
-// 	tk_class_name     := peek_p()
-// 	expect(.Open_Paren,"expected '(' after 'new'.")
-
-	
-// 	argc,argcontainer := argument_list(bp)
-// 	expect(.Close_Paren,"expected ')' after arguments.")
-
-// 	return create_new_node(namednode,argcontainer,argc,loc)
-// }
 
 member :: proc(lhs: ^Node, bp: BindPower) -> ^Node {
 
@@ -170,6 +154,25 @@ assignment :: proc(lhs: ^Node, bp: BindPower) -> ^Node {
 }
 
 
+ternary  :: proc(lhs: ^Node, bp: BindPower) -> ^Node
+{
+	#partial switch peek_ctype()
+	{
+		case .If:
+
+			loc := peek_clocalization(); advance()
+			condition := expression(bp) 
+
+			expect(.Else,"expected 'else' after  condition.")
+			rhs := expression(bp)
+
+			return create_ternary_node(lhs,condition,rhs,loc)
+
+		case : unreachable(); return nil
+	}
+} 
+
+
 binary   :: proc(lhs: ^Node, bp: BindPower) -> ^Node {
 
 	t   := peek_c()
@@ -252,12 +255,6 @@ binary   :: proc(lhs: ^Node, bp: BindPower) -> ^Node {
 		case .Or: 
 			rhs := expression(bp)
 			return create_logical_node(lhs,rhs,.OP_OR,loc)
-
-
-
-
-
-
 
 		case : unreachable(); return nil
 	}

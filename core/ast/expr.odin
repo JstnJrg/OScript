@@ -52,6 +52,15 @@ BinaryNode :: struct {
 	loc        : Localization
 }
 
+
+TernaryNode :: struct {
+	using base :  Node,
+	lhs        : ^Node,
+	condition  : ^Node,
+	rhs        : ^Node,
+	loc        : Localization
+}
+
 LogicalNode :: struct {
 	using base : Node,
 	lhs        : ^Node,

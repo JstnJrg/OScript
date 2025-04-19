@@ -1,3 +1,5 @@
+#+private
+
 package OScriptVM
 
 // Nota(jstn): armazena as funções a serem chamadas com base no tipo
@@ -25,7 +27,6 @@ register_call_data :: proc() {
 
 
 
-
 // Nota(jstn): faz o registro com base no tipo de função, ou seja, exisem funções com diferentestratamentos
 register_call_types :: proc() 
 {
@@ -42,11 +43,12 @@ register_foreign_call_types :: proc()
 register_handle_types :: proc()
 {
 	// Nota(jstn): atomicos
+	register_handle_type(.OBJ_ANY,    any_handle_type)
 	register_handle_type(.OBJ_STRING, atomic_handle_type)
 	register_handle_type(.VECTOR2_VAL,atomic_handle_type)
 	register_handle_type(.COLOR_VAL,  atomic_handle_type)
 	register_handle_type(.OBJ_ARRAY,  atomic_handle_type)
-	register_handle_type(.OBJ_TRANSFORM2,  atomic_handle_type)
+	register_handle_type(.TRANSFORM2_VAL,  atomic_handle_type)
 	register_handle_type(.RECT2_VAL, atomic_handle_type)
 
 
@@ -62,10 +64,10 @@ register_handle_types :: proc()
 register_types_import_id :: proc() {
 	register_type_import(.OBJ_STRING, get_native_import_by_name_importID("String",  OIMODULES))
 	register_type_import(.VECTOR2_VAL,get_native_import_by_name_importID("Vector2", OIMODULES))
-	register_type_import(.RECT2_VAL, get_native_import_by_name_importID("Rect2"   , OIMODULES))
+	register_type_import(.RECT2_VAL,  get_native_import_by_name_importID("Rect2"   , OIMODULES))
 	register_type_import(.COLOR_VAL,  get_native_import_by_name_importID("Color",   OIMODULES))
 	register_type_import(.OBJ_ARRAY,  get_native_import_by_name_importID("Array",   OIMODULES))
-	register_type_import(.OBJ_TRANSFORM2,get_native_import_by_name_importID("Transform2",OIMODULES))
+	register_type_import(.TRANSFORM2_VAL,get_native_import_by_name_importID("Transform2",OIMODULES))
 }
 
 
@@ -121,6 +123,37 @@ atomic_handle_type :: #force_inline proc(#any_int argc: Int,has_error_p: ^bool) 
 		      #force_inline callee(&method,argc,1,has_error_p)
 }
 
+// Nota(jstn): handler para instancia de classes
+@(optimization_mode = "favor_size")
+any_handle_type :: #force_inline proc(#any_int argc: Int,has_error_p: ^bool) {
+	
+	sym_indx        := read_byte()
+	hash            := get_symbol_hash_BD(sym_indx)
+	_any            := AS_ANY_PTR(peek_ptr(0))
+	@static method 	: Value
+
+
+	#partial switch _any.etype 
+	{
+		case .OBJ_PACKAGE:
+
+			import_id := ImportID(_any.id)
+
+			if !table_get_hash(get_import_context_importID(import_id),hash,&method)
+			{
+				runtime_error("method not declared '",get_symbol_str_BD(sym_indx),"' in package '",get_import_name(import_id),"'")
+				has_error_p^ = true
+				return
+			}
+
+			callee := #force_inline get_call_type_ptr(&method) 
+				      #force_inline callee(&method,argc,1,has_error_p)
+		case     : 
+			runtime_error("invalid call <#Any-",TYPE_TO_STRING(_any.etype),">")
+			has_error_p^ = true
+	}
+}
+
 
 // Nota(jstn): handler para instancia de classes
 @(optimization_mode = "favor_size")
@@ -138,24 +171,18 @@ class_instance_handle_type :: #force_inline proc(#any_int argc: Int,has_error_p:
 	// Nota(jstn): pode se dar ao caso de uma variavel possuir um metodo,
 	// ou seja, lhe ser atribuída um função, então procuramos nela
 
-	// TODO: atribuir um metodo aa uma variavel é problematico sem closure
+	// TODO: atribuir um metodo a uma variavel é problematico sem closure
 	// implementar mais tarde closure
 
-	// if table_get(&instance.fields,method_name,&method) {
-	// 	callee := #force_inline get_call_type_ptr(&method)
-	// 	if callee == nil { has_error_p^ = true; return}
-	// 	#force_inline callee(&method,argc,has_error_p); return
-	// }
-
 	//Nota(jstn): Invoca apartir da class super
-	if !get_method_hash_classBD(instance.klass_ID,hash,&method) {
-		runtime_error("method not declared '",get_symbol_str_BD(sym_indx),"' in instance of '",get_class_name_classBD(instance.klass_ID),"'")
-		has_error_p^ = true
+	if get_method_hash_recursively_classBD(instance.klass_ID,hash,&method) {
+	    callee := #force_inline get_call_type_ptr(&method) 
+		#force_inline callee(&method,argc,1,has_error_p)
 		return
 	}
 
-	callee := #force_inline get_call_type_ptr(&method) 
-		      #force_inline callee(&method,argc,1,has_error_p)
+	runtime_error("method not declared '",get_symbol_str_BD(sym_indx),"' in instance of '",get_class_name_classBD(instance.klass_ID),"'")
+	has_error_p^ = true
 }
 
 // Nota(jstn): handler para instancia de classes

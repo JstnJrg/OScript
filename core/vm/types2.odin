@@ -48,6 +48,7 @@ Function 			:: variant.Function
 ImportID            :: variant.ImportID
 ClassID 			:: variant.ClassID
 SeachModule         :: variant.SeachModule
+CallState           :: variant.CallState
 
 
 ObjectCallError 	:: variant.ObjectCallError
@@ -110,7 +111,10 @@ get_class_name_classBD               :: variant.get_class_name_classBD
 get_default_set_classBD				 :: variant.get_default_set_classBD
 get_default_get_classBD				 :: variant.get_default_get_classBD
 get_class_table_classBD              :: variant.get_class_table_classBD
-get_class_private_table_classBD      :: variant.get_class_private_table_classBD        
+get_class_private_table_classBD      :: variant.get_class_private_table_classBD   
+get_class_name_classBD_by_string     :: variant.get_class_name_classBD_by_string 
+get_method_hash_recursively_classBD  :: variant.get_method_hash_recursively_classBD  
+super_has_property_classBD           :: variant.super_has_property_classBD 
 
 initialize_instance_property_classBD :: variant.initialize_instance_property_classBD
 
@@ -123,7 +127,9 @@ get_import_name						 :: variant.get_import_name
 get_import_context_importID 		 :: variant.get_import_context_importID
 register_import_importID 			 :: variant.register_import_importID
 set_current_importID                 :: variant.set_current_importID
+
 register_method 					 :: variant.register_method
+register_value						 :: variant.register_value
 
 //Symbol
 register_symbol_BD					 :: variant.register_symbol_BD
@@ -167,6 +173,7 @@ INT_VAL_PTR			:: variant.INT_VAL_PTR
 FLOAT_VAL_PTR		:: variant.FLOAT_VAL_PTR
 OBJECT_VAL_PTR      :: variant.OBJECT_VAL_PTR
 NIL_VAL_PTR			:: variant.NIL_VAL_PTR
+AS_ANY_PTR          :: variant.AS_ANY_PTR
 
 
 
@@ -213,6 +220,10 @@ GET_TYPE_NAME		:: variant.GET_TYPE_NAME
 
 FUNCTION_NAME		:: variant.FUNCTION_NAME
 OBJ_STRING_DATA		:: variant.OBJ_STRING_DATA
+
+
+CALL_ERROR_STRING   :: variant.CALL_ERROR_STRING
+CALL_WARNING_STRING :: variant.CALL_WARNING_STRING
 
 
 get_operator_evaluator_unary :: variant.get_operator_evaluator_unary

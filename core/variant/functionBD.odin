@@ -2,7 +2,8 @@ package OScriptVariant
 
 FunctionID    :: distinct i16
 
-FunctonInfo   :: struct {
+FunctonInfo   :: struct 
+{
 	id            : FunctionID,
 	import_id     : ImportID,
 	name          : string,
@@ -10,11 +11,11 @@ FunctonInfo   :: struct {
 	default_arity : int,
 }
 
-Function     :: struct {
+Function     :: struct 
+{
 	chunk	: ^Chunk,
 	info    : FunctonInfo   
 }
-
 
 FunctionMemory :: [dynamic]^Function
 
@@ -22,16 +23,6 @@ FunctionMemory :: [dynamic]^Function
 @(private="file")  current_function_memory    : FunctionMemory
 @(private="file")  current_function_allocator : Allocator
 
-
-// ObjectFunction :: struct {
-// 	using obj 		: Object,
-// 	arity     		: int,
-// 	default_arity 	: int, //usado principalmente para metodos de classes, para capturar o self,
-// 	local_count		: int,
-// 	chunk	  		: ^Chunk,
-// 	name	  		: ^ObjectString,
-// 	path 	  		: string
-// }
 
 init_functionBD :: proc(alloc: Allocator) { 
 	current_function_allocator = alloc 

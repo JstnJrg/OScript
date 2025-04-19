@@ -37,7 +37,7 @@ OSCRIPT_ALLOW_RUNTIME_PROFILING     :: true
 // OSCRIPT_ALLOW_RUNTIME_PROFILING     :: true
 
 DEBUG_STRESS_GC						:: false
-DEBUG_GC 							:: false
+DEBUG_GC 							:: !false
 GC_HEAP_GROW_FACTOR					:: 2
 
 

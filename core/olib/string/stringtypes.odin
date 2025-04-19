@@ -4,8 +4,13 @@ import variant    "oscript:variant"
 import constants  "oscript:constants"
 import types	  "oscript:types"
 
+
+
+println             :: variant.println
+
+
 Value 				:: variant.Value
-// NativeFn 			:: variant.NativeFn
+CallState           :: variant.CallState
 Int 				:: types.Int
 // Float				:: types.Float
 ImportID            :: variant.ImportID

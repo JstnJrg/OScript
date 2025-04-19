@@ -21,6 +21,13 @@ Parser :: struct
 }
 
 
+ParserState :: struct 
+{
+	previous_token : Token,
+	current_token  : Token,
+}
+
+
 create  	:: proc(alloator: Allocator) -> ^Parser { return new(Parser,alloator)}
 destroy 	:: proc(p: ^Parser) { free(p) }
 
@@ -37,10 +44,12 @@ advance 	:: proc(p: ^Parser,t: ^Tokenizer) -> (sucess: bool) {
 	
 	p.previous_token = p.current_token
 
-	for	{
+	for	
+	{
 		tk := tokenizer.scan(t) ; p.current_token = tk
 		if p.current_token.type != .Error { sucess = true ; break}
 		p.error_str = tk.text 
+		p.has_error = true
 		break
 	}
 
@@ -63,4 +72,5 @@ peek_current 		:: proc(p: ^Parser) -> Token { return p.current_token  }
 peek_current_type 	:: proc(p: ^Parser) -> TokenType { return  peek_current(p).type }
 peek_previous_type 	:: proc(p: ^Parser) -> TokenType { return peek_previous(p).type }
 
-// reset_error         :: proc(p: ^Pa)
+
+// parser_save_state   :: proc(t: ^Tokenizer)

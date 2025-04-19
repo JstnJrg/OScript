@@ -18,7 +18,7 @@ math   :: math
 
 
 Value 				:: variant.Value
-// NativeFn 			:: variant.NativeFn
+CallState 			:: variant.CallState
 Int 				:: types.Int
 Float				:: types.Float
 Color               :: variant.Color
@@ -39,6 +39,7 @@ COLOR_VAL_PTR       :: variant.COLOR_VAL_PTR
 // IS_FLOAT_PTR        :: variant.IS_FLOAT_PTR
 // IS_FLOAT_PTR_INT    :: variant.IS_INT_PTR
 IS_FLOAT_CAST_PTR   :: variant.IS_FLOAT_CAST_PTR
+IS_COLOR_PTR        :: variant.IS_COLOR_PTR
 
 // FLOAT_VAL			:: variant.FLOAT_VAL
 INT_VAL  			:: variant.INT_VAL

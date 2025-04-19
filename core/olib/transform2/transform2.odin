@@ -1,9 +1,7 @@
-#+private
 
 package OScriptTransform2D
 
 import linalg   "core:math/linalg"
-
 import vector2 "olib:vector2"
 import rect2    "olib:rect2"
 
@@ -13,6 +11,31 @@ mult_x :: proc "contextless" (t: ^mat2x3 ,a: ^Vec2) -> Float #no_bounds_check {	
 mult_y :: proc "contextless" (t: ^mat2x3 ,a: ^Vec2) -> Float #no_bounds_check {	return t[1,0]*a.x+t[1,1]*a.y }
 
 
+_affine_inverse    :: proc "contextless" (t,r: ^mat2x3) -> bool {
+
+	err : bool
+
+	r[0] = t[0]
+	r[1] = t[1]
+	r[2] = t[2]
+
+	det := _basis_determinant(t)
+	if det == 0 { err = true; det = 1e6 }
+	
+	idet := 1.0/det
+
+	// SWAP
+	r[0,0] = t[1,1]
+	r[1,1] = t[0,0]
+
+	r[0]  *= Vec2{idet,-idet}
+	r[1]  *= Vec2{-idet,idet}
+
+	temp  := -r[2]
+	r[2]   = _basis_xform(r,&temp)
+
+	return err
+}
 
 _basis_xform_inv   :: proc "contextless" (t: ^mat2x3, a: ^Vec2) -> Vec2 { return Vec2{vector2._dot(&t[0],a),vector2._dot(&t[1],a)}}
 _basis_xform 	   :: proc "contextless" (t: ^mat2x3, a: ^Vec2) -> Vec2 { return Vec2{mult_x(t,a),mult_y(t,a)}}
@@ -32,7 +55,7 @@ get_rotation_mat :: #force_inline proc "contextless" (theta: Float) -> matrix[2,
 	sin := linalg.sin(theta)
 
 	m := matrix[2,2]Float{
-		 cos, sin,
+		 cos,  sin,
 		 -sin,  cos
 	}
 	return m
@@ -61,8 +84,15 @@ get_rotation_mat :: #force_inline proc "contextless" (theta: Float) -> matrix[2,
 // }
 _get_scale :: proc "contextless" (t: ^mat2x3) -> Vec2 { sum := t[0]+t[1]; return vector2._abs(&sum) }
 
-_inverse :: proc "contextless" (from,to: ^mat2x3) {
+
+// Nota(jstn): essa função presume que a matriz não possui escala, seja
+// X: Vector2(1,0) e Y: Vector2(0,1)
+_inverse ::   proc "contextless" (from,to: ^mat2x3) {
 	
+	// SWAP
+	to[0]   = from[0]
+	to[1]   = from[1]
+
 	to[0,1] = from[1,0]
 	to[1,0] = from[0,1]
 
@@ -91,22 +121,27 @@ _move_toward :: proc "contextless" (from: ^mat2x3, to: ^Vec2, dt: Float) { from[
 // }
 
 
-_orthonormalize :: proc "contextless" (t,r: ^mat2x3) {
-
+_orthonormalize :: proc "contextless" (t,r: ^mat2x3) 
+{
 	x := vector2._normalize(&t[0])
 	y := (t[1]-x*vector2._dot(&x,&t[1]))
 
 	y = vector2._normalize(&y)
+	
 	r[0] = x
 	r[1] = y
+	r[2] = t[2]
+
 }
 
+
+// Nota(jstn): é equivalente
 _rotated :: proc "contextless" (t,r: ^mat2x3,theta: Float) #no_bounds_check
 {
 	m := get_rotation_mat(theta)
-	r[0] = m*t[0]
-	r[1] = m*t[1]
-	r[2] = m*t[2]
+	r[0] = t[0]*m
+	r[1] = t[1]*m
+	r[2] = t[2]*m
 }
 
 _rotate :: proc "contextless" (t: ^mat2x3,theta: Float) #no_bounds_check
@@ -161,13 +196,15 @@ _set_identity :: proc "contextless" (t: ^mat2x3) {	t[0] = vector2._RIGHT; t[1] =
 // }
 _set_scale :: proc "contextless" (t: ^mat2x3, scale : Float)   { t[0] = vector2._normalize(&t[0])*scale; t[1] = vector2._normalize(&t[1])*scale; t[2] *= scale }
 _scaled    :: proc "contextless" (t,o: ^mat2x3, scale : Float) { o[0] = t[0]*scale; o[1] = t[1]*scale; o[2] = t[2]*scale }
+_scaledV   :: proc "contextless" (t,o: ^mat2x3, scale : ^Vec2) { o[0] = t[0]*scale^; o[1] = t[1]*scale^; o[2] = t[2]*scale^ }
+
 // scale_basis :: proc "contextless" (t: ^transform2d, scale : vec2) #no_bounds_check {t[0] *=scale; t[1] *= scale}
 // scaleV :: proc "contextless" (t: ^transform2d, scale : vec2) #no_bounds_check { scale_basis(t,scale); t[2] += scale}
 // scale :: proc "contextless" (t: ^transform2d, scale : f32) #no_bounds_check { offset := vector2.ONE*scale ;scale_basis(t,offset); t[2] += offset}
 
 
 _translate               :: proc "contextless" (t: ^mat2x3, offset: ^Vec2)   {t[2] += _basis_xform(t,offset)}
-_translated              :: proc "contextless" (t,o: ^mat2x3, offset: ^Vec2) {o[0] = t[0] ; o[1] = t[1] ; o[2] = t[2]+_basis_xform(t,offset)}
+_translated              :: proc "contextless" (t,o: ^mat2x3, offset: ^Vec2) {o[0] = t[0] ; o[1] = t[1] ; o[2] = t[2]+offset^}
 
 _translate_inv           :: proc "contextless" (t: ^mat2x3, offset: ^Vec2)   {t[2] += _basis_xform_inv(t,offset)}
 _translateV_no_relactive :: proc "contextless" (t: ^mat2x3, offset: ^Vec2)   {t[2] += offset^}

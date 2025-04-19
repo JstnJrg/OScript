@@ -1,3 +1,5 @@
+#+private
+
 package OScriptVM
 
 import ast "oscript:ast"
@@ -6,14 +8,16 @@ Node 	:: ast.Node
 AstType :: ast.AstType
 
 
-
-
 ast_is_identifier        :: proc(node: ^Node) -> bool { return node.type == .NAMEDVAR }
 ast_identifier_get_name  :: proc(node: ^Node) -> string { return (^ast.NamedNode)(node).name }
 ast_as_namednode         :: proc(node: ^Node) -> ^ast.NamedNode { return (^ast.NamedNode)(node) }
 
-ast_is_get_property      :: proc(node: ^Node) -> bool { return node.type == .GET_PROPERTY}
-ast_as_getpropertynode   :: proc(node: ^Node) -> ^ast.GetPropertyNode { return (^ast.GetPropertyNode)(node) }
+ast_is_get_property       :: proc(node: ^Node) -> bool { return node.type == .GET_PROPERTY}
+ast_as_getpropertynode    :: proc(node: ^Node) -> ^ast.GetPropertyNode { return (^ast.GetPropertyNode)(node) }
+ast_block_get_local_count :: proc(node: ^Node) -> int {
+	block := (^ast.Block)(node)
+	return block.local_count
+} 
 
 block_append_node        :: proc(block,node: ^Node) 
 {
@@ -173,34 +177,6 @@ create_import_node :: proc(container: ^Node,name: string, hash : u32, is_native,
 	return node
 }
 
-
-
-// ImportNode :: struct {
-// 	using base    : Node,
-// 	container     : ^Node,
-// 	name          : string,
-// 	is_native     : bool,
-// 	is_duplicate  : bool,
-// 	hash          : u32,
-// 	loc           : Localization
-// }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 // ============================================================================= EXPR
 
 create_expr_node  :: proc(expr: ^Node, loc : Localization ) -> ^ast.ExprNode {
@@ -262,6 +238,15 @@ create_logical_node :: proc(lhs,rhs: ^Node, op: Opcode , loc : Localization ) ->
 	node.rhs     = rhs
 	node.op      = op
 	node.loc     = loc
+	return node
+}
+
+create_ternary_node :: proc(lhs,condition,rhs: ^Node, loc : Localization ) -> ^ast.TernaryNode{
+	node 	      := create_node(ast.TernaryNode,.TERNARY)
+	node.lhs       = lhs
+	node.condition = condition
+	node.rhs       = rhs
+	node.loc       = loc
 	return node
 }
 

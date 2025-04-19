@@ -1,13 +1,15 @@
+#+private
 package OScriptVM
 
-
-
-ClassNode  :: struct {
+ClassNode  :: struct 
+{
 	using base    : Node,
 	name          : string,
+	extends       : string,
 	class_data    : ^Class,
 	fields_nodes  : ^Node,
 	methods_nodes : ^Node,
+	has_super     : bool,
 	loc           : Localization,
 }
 
@@ -15,16 +17,19 @@ ClassNode  :: struct {
 
 @(private="file") current_class : ^Class
 
-Class :: struct {
+Class :: struct 
+{
 	fields       : map[string]Localization,
 	methods      : map[string]Localization,
 	// method_type  : FunctionType
 }
 
 
-begin_class :: proc() {
-
+begin_class :: proc() 
+{
 	current_class = new(Class,compile_default_allocator())
+
+	oscript_assert_mode(current_class != nil)
 	assert(current_class != nil, "current_class is nullptr.")
 	
 	current_class.fields  = make(map[string]Localization,compile_default_allocator())
@@ -34,10 +39,6 @@ begin_class :: proc() {
 get_current_class :: proc() -> ^Class { return current_class }
 
 end_class         :: proc() { current_class = nil }
-
-// class_init_type   :: proc() { current_class.method_type = .TYPE_INITIALIZER }
-// class_method_type :: proc() { current_class.method_type = .TYPE_METHOD      }
-
 is_class          :: proc() ->  bool { return current_class != nil }
 
 

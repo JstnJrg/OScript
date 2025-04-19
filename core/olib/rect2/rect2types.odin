@@ -6,8 +6,15 @@ import variant    "oscript:variant"
 import constants  "oscript:constants"
 import types	  "oscript:types"
 
+
+
+println   :: variant.println
+register_op			::  variant.register_op
+
 // 
 Value 				:: variant.Value
+CallState           :: variant.CallState
+mat2x3				:: variant.mat2x3
 Vec2 				:: variant.Vector2d
 Rect2 				:: variant.Rect2
 // NativeFn 			:: variant.NativeFn
@@ -36,6 +43,8 @@ AS_RECT2_PTRV    :: variant.AS_RECT2_PTRV
 AS_VECTOR2_PTR   :: variant.AS_VECTOR2_PTR
 AS_VECTOR2_PTRV  :: variant.AS_VECTOR2_PTRV
 
+AS_TRANSFORM2_PTR :: variant.AS_TRANSFORM2_PTR
+
 
 // Nota(jstn): procedures
 IS_VECTOR2D_PTR				:: variant.IS_VECTOR2_PTR
@@ -51,6 +60,7 @@ NIL_VAL_PTR		:: variant.NIL_VAL_PTR
 register_method				:: variant.register_method
 register_value      		:: variant.register_value
 
+TYPE_TO_STRING				:: variant.TYPE_TO_STRING
 CALL_ERROR_STRING			:: variant.CALL_ERROR_STRING
 CALL_WARNING_STRING 		:: variant.CALL_WARNING_STRING
 

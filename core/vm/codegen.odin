@@ -1,3 +1,5 @@
+#+private
+
 package OScriptVM
 
 import ast "oscript:ast"
@@ -7,7 +9,8 @@ import ast "oscript:ast"
 
 CodeGen   :: struct { clabel_data: ^LabelData } 
 
-LabelData :: struct {
+LabelData :: struct 
+{
 	table      : LabelTable,
 	enclosing  : ^LabelData
 }
@@ -214,6 +217,26 @@ generate :: proc(node: ^Node) {
 			generate(binary_node.rhs)
 			emit_instruction_and_slot_index(.OP_OPERATOR,op,loc)
 
+		case .TERNARY:
+			ternary_node := (^ast.TernaryNode)(node) 
+			rhs          := ternary_node.rhs
+			lhs          := ternary_node.lhs
+			condition    := ternary_node.condition
+			loc          := ternary_node.loc
+
+			generate(condition)
+			false_jmp_address := emit_jump_and_get_address(.OP_JUMP_IF_FALSE,loc) 
+
+			emit_instruction(.OP_POP,loc)
+			generate(lhs)
+
+			jmp_address      := emit_jump_and_get_address(.OP_JUMP,loc)
+
+			fill_label_jump_placehold(false_jmp_address,get_current_address())
+			emit_instruction(.OP_POP,loc)
+			generate(rhs)
+
+			fill_label_jump_placehold(jmp_address,get_current_address())
 
 		case .LOGICAL:
 			logical_node := (^ast.LogicalNode)(node)
@@ -448,6 +471,8 @@ generate :: proc(node: ^Node) {
 
 			for _node in args do generate(_node)
 
+			// println(" local ----> ",local_count)
+
 			// Nota(jstn):uma otimização
 			if local_count > 0 do emit_instruction_and_slot_index(.OP_SUB_SP,local_count,loc)
 
@@ -563,9 +588,6 @@ generate :: proc(node: ^Node) {
 	  	end_labeldata() //label data
 
 
-
-
-
 	  case .MATCH:
 	  	
 	  	match_node   := (^ast.MatchNode)(node)
@@ -622,31 +644,6 @@ generate :: proc(node: ^Node) {
 	  		for &cl in laddress  do fill_label_jump_placehold(cl.end,get_current_address())
 	  		
 	  		}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 	  case .BREAK:
 
@@ -709,13 +706,26 @@ generate :: proc(node: ^Node) {
 				fields     := &(^ast.ContainerNode)(class_node.fields_nodes).elements
 				methods    := &(^ast.ContainerNode)(class_node.methods_nodes).elements
 
+				has_super  := class_node.has_super
+				super_name := class_node.extends
+
+				// Nota(jstn): herança
+				super_id := ClassID(-1)
+
+				if has_super { 
+					if id ,found  := get_class_name_classBD_by_string(super_name); found do super_id = id
+					else { error2(loc,"could not find base class '",super_name,"'.");    return }
+				}
 
 				// Nota(jstn): registra a class
-				class_id := register_class_classBD(name)
+				class_id := register_class_classBD(name,super_id)
+
 
 				for property in class_data.fields 
 				{
 					register_class_property_classBD(class_id,property)
+					if has_super && super_has_property_classBD(class_id,property) { error2(loc,"the '",property,"' property already exists in super class '",super_name,"'."); return }
+
 					register_class_property_set_classBD(class_id,property,get_default_set_classBD(.OBJ_CLASS_INSTANCE))
 					register_class_property_get_classBD(class_id,property,get_default_get_classBD(.OBJ_CLASS_INSTANCE))
 				}
@@ -725,7 +735,6 @@ generate :: proc(node: ^Node) {
 				// então, precisamos definir o default arity para 1 afim de 
 				// tem um permenor, a instancia está acima dos argumentos
 				// capturar a instancia. seu slot é 0.
-
 				___CLASS___     :: ".__CLASS__."
 
 		  	function_id     := create_function_functionBD(___CLASS___,0,1,get_current_importID())
@@ -734,7 +743,17 @@ generate :: proc(node: ^Node) {
 		  	enclosing_chunk := get_current_chunk()
 				set_current_chunk(function_chunk)
 
-				for f in fields { generate(f); emit_instruction(.OP_POP,loc)}
+					// Nota(jstn): carrega a função class caso possua uma class super
+					// todas as classes possuem
+				if has_super 
+				{
+						method : Value
+						get_private_method_classBD(super_id,".__CLASS__.",&method)
+						emit_constant_load_instruction(method,loc)
+						emit_instruction(.OP_CALL1,loc)
+				}
+
+				for f in fields { generate(f); emit_instruction(.OP_POP,loc) }
 
 				//Nota(jstn): precisamos retornar, então, vamos retornar a instancia, ela já está na stack
 				emit_instruction(.OP_RETURN,loc)
@@ -1013,7 +1032,5 @@ generate_set_property :: proc(node: ^Node)
 
 
 	}
-
-
 
 }

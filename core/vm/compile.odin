@@ -5,10 +5,6 @@ package OScriptVM
 @(private="file")   current_tokenizer : ^tkzr
 
 
-
-
-
-
 @(optimization_mode="favor_size")
 compile :: proc(path: string) -> (bool,FunctionID)
 {
@@ -31,8 +27,13 @@ compile :: proc(path: string) -> (bool,FunctionID)
 		  create_codegen()
     defer destroy_codegen()
 
+
 	//Nota(jstn): program
 	create_program() 
+
+    // //Nota(jstn): prepass
+    register_prepass()
+    prepass()
 
 	// start
 	advance()
@@ -42,10 +43,9 @@ compile :: proc(path: string) -> (bool,FunctionID)
 	// para evitar referencias ciclicas de scripts
 	register_dependencies(path,peek_clocalization())
 
-
 	// parse loop
-	for !is_eof() && !has_error() {
-
+	for !is_eof() && !has_error() 
+	{
 		arena_temp := ast_arena_temp_begin()
 		ast_node   := parse_stmt()
 		if !has_error() do codegen_generate(ast_node)
@@ -54,13 +54,6 @@ compile :: proc(path: string) -> (bool,FunctionID)
 
 	return end_current_program()
 }
-
-
-
-
-
-
-
 
 
 set_current_tkzr :: proc "contextless" (t: ^tkzr) { current_tokenizer = t }
@@ -86,6 +79,7 @@ skip_newline2   :: proc(count: int )           { for i in 0..<count do if at(.Ne
 skip            :: proc()			{ p_skip(get_current_psr(),get_current_tkzr()) }
 has_error		:: proc() -> bool 	{ return p_has_error(get_current_psr()) }
 skip2           :: proc() { for at(.Semicolon) || at(.Newline) do advance()}
+skip3           :: proc() { for !is_eof() && !has_error() && !at(.Newline) && !at(.Semicolon) do advance() }
 
 
 
@@ -103,6 +97,11 @@ peek_ptype      :: proc() -> TokenType { return p_peek_ptype(get_current_psr()) 
 
 expect          :: proc(type: TokenType, msg: string )    { if !p_expected(get_current_psr(),get_current_tkzr(),type) do error(msg)          }
 expect_p        :: proc(type: TokenType, msg: string )    { if !p_expected_previous(get_current_psr(),get_current_tkzr(),type) do error(msg) }
+
+
+p_pass_save_state    :: proc() { tk_save_state(get_current_tkzr()) }
+p_pass_restore_state :: proc() { tk_restore_state(get_current_tkzr()) }
+
 
 
 expect_terminator 	:: proc(message: string) 
@@ -187,6 +186,18 @@ error 			:: proc(args: ..any) {
 	
 }
 
+error2 			:: proc(localization : Localization ,args: ..any) {
+	
+	if get_current_psr().panic_mode do return
+	   get_current_psr().panic_mode = true
+	   get_current_psr().has_error  = true
+
+	print("[COMPILE: ",localization.file,"] Error ","(",localization.line,",",localization.column,") --> ")
+	println(..args)
+	
+}
+
+
 mute_error :: proc() {
 	
 	if get_current_psr().panic_mode do return
@@ -196,6 +207,5 @@ mute_error :: proc() {
 
 synthetic_token 	:: proc(value: string) -> Token { t: Token; t.pos = peek_clocalization() ; t.text = value; return t  }
 token_str_cmp       :: proc(a: ^Token,str: string) -> bool { return a.text == str}
-
-
+token_len           :: proc(t: ^Token) -> int { return len(t.text) }
 

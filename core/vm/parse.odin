@@ -1,3 +1,5 @@
+#+private
+
 package OScriptVM
 
 
@@ -6,12 +8,13 @@ package OScriptVM
 parse_stmt :: proc(bp : BindPower =.DEFAULT) -> ^Node {
 
 	/* Nota(Jstn): skippa qualquer nova linha, afim de permitir que qualquer função abaixo trate qualquer token diferente de newline */
-	skip()
-	loc := peek_clocalization() 
+	skip(); loc := peek_clocalization() 
 
 	if !check_compiler_permissions() do return create_bad_node(peek_c(),peek_clocalization())
 	
-	stmt_calle,ok := get_current_lookup().stmt_map[peek_ctype()]
+	ok, stmt_calle := get_stmt_lu(peek_ctype())
+
+
 
 	if ok 
 	{
@@ -47,29 +50,32 @@ expression :: proc(bp :BindPower) -> ^Node
 	loc           := peek_clocalization() 
 	lookup_p      := get_current_lookup()
 	type          := peek_ctype()
-	nud_callee,ok := lookup_p.nud_map[type]
+	ok,nud_callee := get_nud_lu(type)
 
 	/* Nota(jstn): funções únarias a serem chamadas primeiro , tudo isso levando em conta o registro dos tokens */
 	if !ok { error("expect a nud handler for \'",peek_c().text,"\'.");  return create_bad_node(peek_c(),loc) }
 	left := nud_callee(bp)
 
+
 	/* Nota(jstn): funções binarias a serem chamadas depois, tudo isso levando em conta o registro dos tokens */
 	for !is_eof() && !has_error() 
 	{
 		type   = peek_ctype()
-		if lookup_p.bp_led_map[type] > bp 
+		lbp   := get_led_bp(type)
+
+		if lbp > bp 
 		{
-			if _, ok := lookup_p.led_map[type]; !ok 
+			ok,led_callee := get_led_lu(type)
+			
+			if !ok 
 			{ 
-				loc     = peek_clocalization()
 				led_tk := peek_c()
+				loc     = peek_clocalization()
 				error("expect a led handler for \'",led_tk.text,"\'.")
 				return create_bad_node(led_tk,loc) 
 			}
-			
-			led_callee := lookup_p.led_map[type]
-			led_bp := lookup_p.bp_led_map[type]
-			left = led_callee(left,led_bp)
+
+			left = led_callee(left,lbp)
 		}
 		else do break
 	}

@@ -21,7 +21,7 @@ register_op			:: variant.register_op
 
 
 Value 				:: variant.Value
-// NativeFn 			:: variant.NativeFn
+CallState 			:: variant.CallState
 Int 				:: types.Int
 Float				:: types.Float
 ImportID            :: variant.ImportID

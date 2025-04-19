@@ -20,11 +20,41 @@ Tokenizer 	:: struct {
 	offset_current: Int,
 	line  : 		Int,
 	column: 		Int,
+	t_state:        TokenizerState,
 	allocator:      mem.Allocator 
+}
+
+
+// Nota(jstn): útil somente para o pré-pass
+TokenizerState :: struct {
+	offset_start   : Int,
+	offset_current : Int,
+	line           : Int,
+	column         : Int
 }
 
 create   :: proc(alloc: mem.Allocator ) -> ^Tokenizer { t := new(Tokenizer,alloc); bf, _ := strings.builder_make_none(alloc); t.src = bf; t.allocator = alloc ; return t }
 destroy  :: proc(t: ^Tokenizer){ strings.builder_destroy(&t.src) }
+
+save_state :: proc(t: ^Tokenizer) {
+
+	state := &t.t_state
+	state.offset_start   = t.offset_start
+	state.offset_current = t.offset_current
+	state.line           = t.line
+	state.column         = t.column
+}
+
+restore_state :: proc(t: ^Tokenizer) {
+	
+	state := &t.t_state
+	t.offset_start   = state.offset_start
+	t.offset_current = state.offset_current
+	t.line           = state.line
+	t.column         = state.column
+}
+
+
 
 init     :: proc(t: ^Tokenizer,src: string, path : string) {
 	

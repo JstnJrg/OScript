@@ -18,15 +18,10 @@ CallFrame 	:: struct
 }
 
 
-GlobalFrame :: struct {
-	current  : ^Table
-}
+GlobalFrame :: struct { current  : ^Table }
 
 
 VM :: struct {
-
-	// programs		  : [MAX_PROGRAM]Value,
-	// program_count	  : Int,
 	
 	frames 			  : [MAX_FRAMES]CallFrame,
 	frame_count 	  : Int,
@@ -37,14 +32,11 @@ VM :: struct {
 	stack 			  : [MAX_STACK]Value,
 	tos		  		  : Int,
 
-	// intrinsics        :  Table, //é um tipo particular
 	globals			  :  Table, 
 	treturn           :  Value,  
 
 	inter_strings     : TableString,
 	inter_hash        : TableHash,
-
-	error 			  : ObjectCallError,
 
 	// GC
 	bytes_allocated   : Uint,
@@ -53,11 +45,11 @@ VM :: struct {
 	objects	   		  : ^Object,
 	gc_trigger		  : bool,	
 	
-
 	gray_stack		  : [dynamic]^Object,
 	gray_stack_Len    : Int,
-	gray_stack_count  : Int
-	// profiling         : Profiling
+	gray_stack_count  : Int,
+
+	call_state        : CallState 
 
 }
 
@@ -135,8 +127,8 @@ run :: proc() -> InterpretResult
 					return .INTERPRET_RUNTIME_ERROR
 				}
 
-				#force_inline op_function(a,nil,r,&error,&current_vm.error)
-				if error { runtime_error(current_vm.error.msg_str); return .INTERPRET_RUNTIME_ERROR }								
+				#force_inline op_function(a,nil,r,&error,get_obj_error())
+				if error { runtime_error(get_error_msg()); return .INTERPRET_RUNTIME_ERROR }								
 				
 				push_empty()
 				
@@ -156,8 +148,8 @@ run :: proc() -> InterpretResult
 					return .INTERPRET_RUNTIME_ERROR
 				}
 
-				#force_inline op_function(a,b,r,&error,&current_vm.error)
-				if error { runtime_error(current_vm.error.msg_str); return .INTERPRET_RUNTIME_ERROR }				
+				#force_inline op_function(a,b,r,&error,get_obj_error())
+				if error { runtime_error(get_error_msg()); return .INTERPRET_RUNTIME_ERROR }				
 				
 				push_empty()
 
@@ -184,8 +176,8 @@ run :: proc() -> InterpretResult
 				construct_function := #force_inline get_construct_evaluator(op)
 				if construct_function == nil { runtime_error("invalid  '",get_operator_name(op),"'","constructor."); return .INTERPRET_RUNTIME_ERROR }
 
-				#force_inline construct_function(args,argc,r,&error,&current_vm.error)
-				if error { runtime_error(current_vm.error.msg_str); return .INTERPRET_RUNTIME_ERROR}
+				#force_inline construct_function(args,argc,r,&error,get_obj_error())
+				if error { runtime_error(get_error_msg()); return .INTERPRET_RUNTIME_ERROR}
 				
 				push_empty()
 				#force_inline trigger_gc()
@@ -280,18 +272,16 @@ run :: proc() -> InterpretResult
 				frame = get_current_frame()
 				#force_inline trigger_gc()
 
-			// // case .OP_INHERIT:
+			case .OP_CALL1:
 
-			// // 	super := peek_ptr(0)
-			// // 	class := peek(1)
+				has_error : bool
+				method    := pop_ptr()
+				callee    := #force_inline  get_call_type_ptr(method) 
+	
+				#force_inline callee(method,0,1,&has_error)
+				if has_error do return .INTERPRET_RUNTIME_ERROR
 
-			// // 	if !IS_VAL_CLASS_PTR(super) {
-			// // 		runtime_error("superclass must be a class.")
-			// // 		return .INTERPRET_RUNTIME_ERROR
-			// // 	}
-
-			// // 	table_copy(&VAL_AS_OBJ_CLASS(super).methods,&VAL_AS_OBJ_CLASS(class).methods)
-			// // 	pop_offset(1) //remove a super_class
+				frame = get_current_frame()
 
 			case .OP_PRENEW: if !preinstatiate() do return .INTERPRET_RUNTIME_ERROR
 				
@@ -322,8 +312,8 @@ run :: proc() -> InterpretResult
 					return .INTERPRET_RUNTIME_ERROR
 				}
 		
-				#force_inline op_function(obj,property,r,&error,&current_vm.error)
-				if error { runtime_error(current_vm.error.msg_str); return .INTERPRET_RUNTIME_ERROR }	
+				#force_inline op_function(obj,property,r,&error,get_obj_error())
+				if error { runtime_error(get_error_msg()); return .INTERPRET_RUNTIME_ERROR }	
 
 				push_empty()
 
@@ -351,8 +341,8 @@ run :: proc() -> InterpretResult
 					return .INTERPRET_RUNTIME_ERROR
 				}
 				
-				#force_inline op_function(obj,property,r,&error,&current_vm.error)
-				if error     { runtime_error(current_vm.error.msg_str); return .INTERPRET_RUNTIME_ERROR }	
+				#force_inline op_function(obj,property,r,&error,get_obj_error())
+				if error     { runtime_error(get_error_msg()); return .INTERPRET_RUNTIME_ERROR }	
 
 				
 
@@ -371,8 +361,8 @@ run :: proc() -> InterpretResult
 					return .INTERPRET_RUNTIME_ERROR
 				}
 				
-				#force_inline op_function(obj,indx,assign,&error,&current_vm.error)
-				if error { runtime_error(current_vm.error.msg_str); return .INTERPRET_RUNTIME_ERROR }
+				#force_inline op_function(obj,indx,assign,&error,get_obj_error())
+				if error { runtime_error(get_error_msg()); return .INTERPRET_RUNTIME_ERROR }
 
 			case .OP_INVOKE:
 

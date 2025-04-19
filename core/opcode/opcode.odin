@@ -85,6 +85,7 @@ OpCode :: distinct enum u8
 	OP_JUMP,
 
 	OP_CALL,
+	OP_CALL1, //SUPER
 	
 	OP_CLASS,
 
@@ -187,6 +188,7 @@ opcode_to_string :: proc(op: OpCode) -> string {
 		case .OP_MATCH:             return "OP_MATCH"
 
 		case .OP_CALL:		return "OP_CALL"
+		case .OP_CALL1:     return "oP_CALL1"
 		case .OP_CLASS:		return "OP_CLASS"
 
 		case .OP_INVOKE:		return "OP_INVOKE"

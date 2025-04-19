@@ -26,7 +26,7 @@ ObjectType :: distinct enum u8 {
 	OBJ_NONE, //ajuda a manter uma correspondencia 1 <--> 1 com ValueType
 
 	//buffer 
-	OBJ_TRANSFORM2,
+	OBJ_ANY,
 
 
 	// heap
@@ -93,7 +93,34 @@ ObjectFunction :: struct {
 	path 	  		: string
 }
 
-NativeFn :: proc(argc: int, args: []Value,result: ^Value, callerror: ^ObjectCallError = nil)
+// Nota(jstn): CallState, que encapsula todos os dados que são importantes para
+// chamada de função.
+
+NativeFn :: proc(call_state : ^CallState )
+
+// proc(argc: int, args: []Value,result: ^Value, callerror: ^ObjectCallError = nil)
+// NativeF2 :: proc(call_state : ^CallState(typeid))
+
+// Nota(jstn): contexto de chamada 
+CallState :: struct
+{
+	args          : []Value,
+	error_bf      : ObjectCallError,
+	result        : ^Value,
+
+	get_allocator : proc() -> Allocator,
+	init_temp     : proc() -> Arena_Temp,
+	end_temp      : proc(t: Arena_Temp),
+
+	argc          : Int,
+	has_error     : bool,
+	has_warning   : bool	
+}
+
+
+
+
+
 
 ObjectNative :: struct {
 	using obj : Object,
@@ -444,6 +471,12 @@ clear_obj_data :: proc(obj: ^Object)
 	    	// object_p.len
 	    	clear( &object_p.data) 
 	    	shrink(&object_p.data,8)
+
+	    case .OBJ_ANY:
+	    	object_p      := (^Any)(obj)
+	    	object_p.etype = .NONE_VAL
+	    	object_p.id    = -1
+
 	}
 }
 
@@ -506,8 +539,9 @@ free_object :: proc(obj : ^Object) {
 			free(program_p)
 
 		// no heap
-		case .OBJ_TRANSFORM2:
-			t := (^Transform2D)(obj)
+
+		case .OBJ_ANY:
+			t := (^Any)(obj)
 			memfree(t)
 	}
 }

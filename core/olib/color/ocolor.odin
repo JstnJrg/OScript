@@ -3,52 +3,61 @@
 package OscriptColor
 
 
-error_msg :: proc(fn_name: string, expected,argc: Int,be: string ,call_error_p: ^ObjectCallError) {
-	CALL_ERROR_STRING(call_error_p,"'",fn_name,"' function expects '",expected,"' args, but got ",argc,", and the argument must be ",be,".")
+error_msg :: proc(fn_name: string, expected: Int, be: string ,call_state: ^CallState) {
+	CALL_ERROR_STRING(&call_state.error_bf,"'",fn_name,"' function expects '",expected,"' args, but got ",call_state.argc,", and the argument must be ",be,".")
+	call_state.has_error = true
 }
 
-error_msg0 :: proc(fn_name: string, expected,argc: Int ,call_error_p: ^ObjectCallError) {
-	CALL_ERROR_STRING(call_error_p,"'",fn_name,"' function expects '",expected,"' args, but got ",argc,".")
+error_msg0 :: proc(fn_name: string, expected : Int ,call_state: ^CallState) { 
+	CALL_ERROR_STRING(&call_state.error_bf,"'",fn_name,"' function expects '",expected,"' args, but got ",call_state.argc,".") 
+	call_state.has_error = true
 }
 
+error      :: proc(msg: string ,call_state: ^CallState) { CALL_ERROR_STRING(&call_state.error_bf,msg); call_state.has_error = true    }
+warning    :: proc(msg: string ,call_state: ^CallState) { CALL_WARNING_STRING(&call_state.error_bf,msg); call_state.has_warning = true }
 
-get_luminance :: proc(argc: Int, args: []Value,result: ^Value, call_error_p : ^ObjectCallError){
+
+get_luminance :: proc(call_state: ^CallState)
+{
+	if call_state.argc != 0 { error_msg0("get_luminance",0,call_state); return }
 	
-	if argc != 0 { when OSCRIPT_ALLOW_RUNTIME_WARNINGS do error_msg0("get_luminance",0,argc,call_error_p); return }
-	
-	color_p := AS_COLOR_PTR(&args[argc])
+	color_p := AS_COLOR_PTR(&call_state.args[0])
 	r       := _get_luminance(color_p)
 
-	INT_VAL_PTR(result,Int(r))
+	INT_VAL_PTR(call_state.result,Int(r))
 }
 
-darkened      :: proc(argc: Int, args: []Value,result: ^Value, call_error_p : ^ObjectCallError){
-	
+darkened      :: proc(call_state: ^CallState)
+{
 	amount : Float
-
-	if argc != 1 || !IS_FLOAT_CAST_PTR(&args[0],&amount){ 
-		when OSCRIPT_ALLOW_RUNTIME_WARNINGS do error_msg("darkened",1,argc,"a number",call_error_p)
-		return
-	}
+	if call_state.argc != 1 || !IS_FLOAT_CAST_PTR(&call_state.args[0],&amount){ error_msg("darkened",1,"a number",call_state); return }
 	
-	color_p := AS_COLOR_PTR(&args[argc])
+	color_p := AS_COLOR_PTR(&call_state.args[1])
 	r       := _darkened(color_p,&amount)
-	COLOR_VAL_PTR(result,&r)
+
+	COLOR_VAL_PTR(call_state.result,&r)
 }
 
-lightened     :: proc(argc: Int, args: []Value,result: ^Value, call_error_p : ^ObjectCallError){
-	
+lightened     :: proc(call_state: ^CallState)
+{
 	amount : Float
-
-	if argc != 1 || !IS_FLOAT_CAST_PTR(&args[0],&amount){ 
-		when OSCRIPT_ALLOW_RUNTIME_WARNINGS do error_msg("lightened",1,argc,"a number",call_error_p)
-		return
-	}
+	if call_state.argc != 1 || !IS_FLOAT_CAST_PTR(&call_state.args[0],&amount){ error_msg("lightened",1,"a number",call_state); return }
 	
-	color_p := AS_COLOR_PTR(&args[argc])
+	color_p := AS_COLOR_PTR(&call_state.args[1])
 	r       := _lightened(color_p,&amount)
 
-	COLOR_VAL_PTR(result,&r)
+	COLOR_VAL_PTR(call_state.result,&r)
 }
 
+lerp     :: proc(call_state: ^CallState)
+{
+	amount : Float
+	if call_state.argc != 2 || !IS_COLOR_PTR(&call_state.args[0]) || !IS_FLOAT_CAST_PTR(&call_state.args[1],&amount){ error_msg("lerp",2,"Color and float",call_state); return }
+	
+	color_p  := AS_COLOR_PTR(&call_state.args[2])
+	color_to := AS_COLOR_PTR(&call_state.args[0])
+	r        := _lerp(color_p,color_to,amount)
+
+	COLOR_VAL_PTR(call_state.result,&r)
+}
 

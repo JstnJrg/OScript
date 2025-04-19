@@ -1,3 +1,5 @@
+#+private
+
 package OScriptVM
 
 import vmem 	    "core:mem/virtual"

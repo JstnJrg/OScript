@@ -1,7 +1,6 @@
+#+private
+
 package OScriptVM
-
-// @(private="file") current_function : ^FunctionNode
-
 
 FunctionType :: distinct enum u8 
 {

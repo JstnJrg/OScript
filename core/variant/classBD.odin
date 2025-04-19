@@ -2,7 +2,7 @@ package OScriptVariant
 
 // import vmem 	    "core:mem/virtual"
 
-ClassID        			:: distinct u64 //é crescente, então é muito importante
+ClassID        			:: distinct i16 //é crescente, então é muito importante
 Container               :: [dynamic]CLassInfo
 
 ClassContainer 			:: struct { ID : Container }
@@ -37,12 +37,13 @@ MethodInfo :: struct {
 CLassInfo :: struct
 {
 	id       		: ClassID,
+	super_id        : ClassID,
 	name     		: string,
 	methods  		: Table,
 	privates  		: Table,
 	methods_info    : MethodInfoDynamicArray,
 	property_hash	: PropertyHash,
-	property 		: PropertySetGetInfoMap,
+	property 		: PropertySetGetInfoMap
 }
 
 
@@ -59,7 +60,7 @@ init_classBD :: proc(allocator : Allocator) {
 
 
 // Nota(jstn): regista uma class e prepara sua tabela de metadados
-register_class_classBD        :: proc(class_name : string) -> ClassID {
+register_class_classBD        :: proc(class_name : string, super_id : ClassID = -1 ) -> ClassID {
 
 	append(&current_class_container.ID,CLassInfo{})
 	id    := len(current_class_container.ID)-1 
@@ -71,6 +72,7 @@ register_class_classBD        :: proc(class_name : string) -> ClassID {
 	// Nota(jstn): prepara a class para metadados
 	cinfo              := &current_class_container.ID[ID]
 	cinfo.id       		= ID
+	cinfo.super_id      = super_id
 	cinfo.name          = get_symbol_str_BD(gsid)
 	cinfo.methods  		= make(Table,current_class_allocator)
 	cinfo.privates      = make(Table,current_class_allocator)
@@ -78,6 +80,7 @@ register_class_classBD        :: proc(class_name : string) -> ClassID {
 	cinfo.property_hash = make(PropertyHash,current_class_allocator)
 	cinfo.property 		= make(PropertySetGetInfoMap,current_class_allocator)
 
+	if is_valid_super_classBD(super_id) do extends_from_super_classBD(ID,super_id)
 	return ID
 }
 
@@ -139,6 +142,37 @@ register_class_property_classBD :: proc(id: ClassID, _property_name: string) {
 }
 
 
+extends_from_super_classBD   :: proc (id,sid : ClassID) 
+{
+  cinfo           := &current_class_container.ID[id]
+  scinfo          := &current_class_container.ID[sid]
+  for p,psgi in scinfo.property  do cinfo.property[p] = psgi
+}
+
+
+// Nota(jstn): verifica se a class super já possui um determinado field
+super_has_property_classBD     :: proc "contextless" (id: ClassID, _property_name: string ) -> bool {
+	
+	cinfo           := &current_class_container.ID[id]
+	if cinfo.super_id < 0 do return false
+
+	scinfo          := &current_class_container.ID[cinfo.super_id]
+	return _property_name in scinfo.property
+}
+
+is_valid_super_classBD  :: proc "contextless" (sid:ClassID) -> bool { return sid >= 0 }
+
+// // Nota(jstn): verifica se a class super já possui um determinado field
+// super_has_method     :: proc(id: ClassID, _property_name: string ) -> bool {
+	
+// 	cinfo           := &current_class_container.ID[id]
+// 	if cinfo.super_id < 0 do return false
+
+// 	scinfo          := &current_class_container.ID[cinfo.super_id]
+// 	return _property_name in scinfo.property
+// }
+
+
 // Nota(jstn): não fazemos verificações extras, pois acredita-se que a propriedade já está registrada 
 register_class_property_set_classBD :: proc "contextless" (id: ClassID, property_name: string, set_method: SetGetType  ) {
 	cinfo := &current_class_container.ID[id]
@@ -155,6 +189,14 @@ register_class_property_get_classBD :: proc "contextless" (id: ClassID, property
 
 // Nota(jstn): obtem o nome da class, não fazemos nenhuma verificação, pois acredita-se que o ID esta corretco
 get_class_name_classBD          :: #force_inline proc "contextless" (id: ClassID) -> string { return current_class_container.ID[id].name }
+
+
+// Nota(jstn): obtem o id da class por string
+get_class_name_classBD_by_string :: #force_inline proc "contextless" (cname: string) -> (ClassID,bool) { 
+	container := &current_class_container.ID
+	for ci in container do if  ci.name == cname do return ci.id,true
+	return ClassID(-1),false
+}
 
 // Nota(jstn): util para o GC
 get_class_table_classBD         :: #force_inline proc "contextless" (id: ClassID) -> ^Table { return &current_class_container.ID[id].methods }
@@ -173,6 +215,26 @@ get_method_hash_classBD        :: #force_inline proc (id: ClassID, _method_hash:
 	cinfo  := &current_class_container.ID[id]
 	return table_get_hash(&cinfo.methods,_method_hash,method_p)
 }
+
+
+// Nota(jstn): obtem um metodo qualquer da class, não fazemos nenhuma verificação, pois acredita-se que o ID esta corretco
+get_method_hash_recursively_classBD        :: #force_inline proc "contextless" (id: ClassID, _method_hash: u32, method_p: ^Value ) -> bool {
+	
+	cinfo  := &current_class_container.ID[id]
+	tablep := &cinfo.methods
+
+	has    := table_get_hash(tablep,_method_hash,method_p)
+
+	for !has && is_valid_super_classBD(cinfo.super_id) 
+	{
+		cinfo  = &current_class_container.ID[cinfo.super_id]
+		tablep = &cinfo.methods
+		has    = table_get_hash(tablep,_method_hash,method_p)
+	}
+
+	return has
+}
+
 
 
 // Nota(jstn): obtem o getter de uma determinada propriedade

@@ -92,13 +92,15 @@ construct_color	:: #force_inline proc(args: []Value, #any_int argc: Int, r_varia
 construct_transform2d	:: #force_inline proc(args: []Value, #any_int argc: Int, r_variant: ^Value, has_error: ^bool, call_error_p : ^ObjectCallError){
 
 	for i in 0..<3 do if !IS_VECTOR2_PTR(&args[i]) {
-		CALL_ERROR_STRING(call_error_p,"'",TYPE_TO_STRING(.OBJ_TRANSFORM2),"' expects '",TYPE_TO_STRING(.VECTOR2_VAL),"' but got '",GET_TYPE_NAME(&args[i]),"'.")
+		CALL_ERROR_STRING(call_error_p,"'",TYPE_TO_STRING(.TRANSFORM2_VAL),"' expects '",TYPE_TO_STRING(.VECTOR2_VAL),"' but got '",GET_TYPE_NAME(&args[i]),"'.")
 		has_error^ = true
 		return
 	}
 
-	t := create_transform2_ptr(AS_VECTOR2_PTR(&args[0]),AS_VECTOR2_PTR(&args[1]),AS_VECTOR2_PTR(&args[2]))
-	OBJECT_VAL_PTR(r_variant,t,.OBJ_TRANSFORM2)
+
+	TRANSFORM2_VAL_PTR(r_variant,AS_VECTOR2_PTR(&args[0]),AS_VECTOR2_PTR(&args[1]),AS_VECTOR2_PTR(&args[2]))
+	// t := create_transform2_ptr(,,)
+	// OBJECT_VAL_PTR(r_variant,t,.OBJ_TRANSFORM2)
 }
 
 construct_rect2	       :: #force_inline proc(args: []Value, #any_int argc: Int, r_variant: ^Value, has_error: ^bool, call_error_p : ^ObjectCallError){

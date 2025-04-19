@@ -31,9 +31,11 @@ print_values :: proc(value: ^Value)
 		case .INT_VAL 		: print(AS_INT_PTR(value))
 		case .BOOL_VAL  	: print(AS_BOOL_PTR(value))
 		case .NIL_VAL   	: print("nil")
-		
+
 		case .VECTOR2_VAL	: vector2 := AS_VECTOR2_PTR(value); print("Vector2(",vector2.x,",",vector2.y,")")
 		case .COLOR_VAL     : color_p := AS_COLOR_PTR(value)  ; print("Color(",color_p.r,",",color_p.g,",",color_p.b,",",color_p.a,")")
+		case .OID_VAL       : oid     := AS_OID_PTR(value)    ; print("OID(",oid.key,")")
+
 
 		case .RECT2_VAL:
 			rect_p := AS_RECT2_PTR(value)
@@ -41,14 +43,31 @@ print_values :: proc(value: ^Value)
 			size_p :=  &rect_p[1]
 			print("Rect2((",pos_p.x,",",pos_p.y,"),(",size_p.x,",",size_p.y,"))")
 
+		case .TRANSFORM2_VAL:
 
-		case .OBJ_TRANSFORM2:
-
-			mat2x3 := AS_TRANSFORM2_DATA_PTR(value)
+			mat2x3 := AS_TRANSFORM2_PTR(value)
 			X      := &mat2x3[0]
 			Y      := &mat2x3[1]
 			O      := &mat2x3[2]
 			print("Transform2D(","(",X.x,",",X.y,")",",","(",Y.x,",",Y.y,")",",","(",O.x,",",O.y,")",")")
+
+		case .OBJ_ANY       : 
+
+			_any   := AS_ANY_PTR(value)
+
+			#partial switch _any.etype 
+			{ 
+				case .OBJ_PACKAGE: print("<#",get_import_name(ImportID(_any.id)),"Reference>") 
+				case             : print("<#Any>",_any.id)
+			}
+
+		// case .OBJ_TRANSFORM2:
+
+		// 	mat2x3 := AS_TRANSFORM2_DATA_PTR(value)
+		// 	X      := &mat2x3[0]
+		// 	Y      := &mat2x3[1]
+		// 	O      := &mat2x3[2]
+		// 	print("Transform2D(","(",X.x,",",X.y,")",",","(",Y.x,",",Y.y,")",",","(",O.x,",",O.y,")",")")
 		
 		case .OBJ_VAL	            : println(" OBJECT VAL")
 		case .OBJ_STRING   			: print(VAL_STRING_DATA_PTR(value))

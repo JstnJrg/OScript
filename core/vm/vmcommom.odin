@@ -77,7 +77,7 @@ read_string_vptr :: #force_inline proc "contextless" () -> ^Value {
 	return &get_current_frame().function.chunk.constants[read_byte()]
 }
 
-read_symid_vptr :: #force_inline proc() -> ^Value {
+read_symid_vptr :: #force_inline proc "contextless" () -> ^Value {
 	return &get_current_frame().function.chunk.constants[read_byte()]
 }
 
@@ -135,7 +135,7 @@ pop_ptr :: #force_inline proc() -> ^Value {
 
 /* Nota(jstn): desloca o tos com base em um offset, presumo que é seguro */
 @(optimization_mode = "favor_size")
-pop_offset :: #force_inline proc(#any_int offset: Int) { current_vm.tos -= offset }
+pop_offset :: #force_inline proc "contextless" (#any_int offset: Int) { current_vm.tos -= offset }
 
 
 
@@ -315,7 +315,9 @@ get_current_global_frame :: #force_inline proc "contextless" () -> ^GlobalFrame 
    , ou saiba o que estas fazendo */
 @(optimization_mode = "favor_size")
 next_global_frame :: #force_inline proc() -> (sucess: bool)  { 
+	
 	current_vm.global_frame_count += 1
+	
 	if current_vm.global_frame_count > MAX_GLOBAL_FRAME 
 	{
 		runtime_error("GLOBAL FRAME STACK OVERFLOW.")
@@ -406,76 +408,11 @@ match :: #force_inline proc ()
 		 op_function :=  #force_inline get_operator_evaluator(.OP_EQUAL,condition_value.type,case_value.type)
 		if op_function == nil do continue
 
-		#force_inline op_function(condition_value,&case_value,&r,&error,&current_vm.error)
+		#force_inline op_function(condition_value,&case_value,&r,&error,get_obj_error())
 		if AS_BOOL_PTR(&r) { jump(AS_INT_PTR(&addresses[indx])+1); return }
 	} 
 	
 }
-
-
-
-
-
-
-
-// Nota(jstn): usado para  chamar funcões OScript e nativas
-call_by :: #force_inline proc(obj: ^Object, argc : Int) -> bool
-{
-	#partial switch obj.type
-	{
-		// case .OBJ_FUNCTION: return #force_inline call_function(#force_inline OBJ_AS_FUNCTION_OBJ(obj),argc)
-		
-		// case .OBJ_NATIVE_FUNCTION:
-
-		// 		// Nota(jstn): não quere-se somente os argumentos, mas também a instancia
-		// 		// para outros fins, como classes que possuem ID
-		// 		args   := current_vm.stack[current_vm.tos-argc-1:][:argc+1]
-		// 		pop_offset(argc+1)
-		// 		result := peek_cptr()
-
-		// 		#force_inline OBJ_GET_NATIVE_FN(obj)(argc,args,result,&current_vm.error)
-				
-		// 		if 		current_vm.error.error     { runtime_error(current_vm.error.msg_str); return false }
-		// 		else if  current_vm.error.warning do runtime_error(current_vm.error.msg_str)
-
-		// 		push_empty()
-
-		// 		return true
-	}
-
-	runtime_error("can only call functions and classes intance methods.")
-	return false
-}
-
-
-// concatenate :: #force_inline proc(){
-
-// 	s0 				:= peek_string(1)
-// 	s1 				:= peek_string(0)
-// 	inter_hash   	:= &current_vm.inter_hash
-
-// 	/* Nota(jstn): usado para otimizar a concatenação, é uma grande otimização */
-// 	hash_combine     := #force_inline combine(s0.hash,s1.hash)
-// 	hash,has_combine := inter_hash[hash_combine]
-
-// 	if has_combine && ( hash in inter_hash) {
-// 		pop_offset(2)
-// 		push(OBJECT_VAL(current_vm.inter_strings[hash],.OBJ_STRING))
-// 		return
-// 	}
-
-
-// 	obj_string := CREATE_OBJ_STRING_NO_DATA()
-// 	OBJ_STRING_WRITE_DATA(obj_string,s0)
-// 	OBJ_STRING_WRITE_DATA(obj_string,s1,true)
-
-// 	/* Nota(jstn): internaliza essa combinação */
-// 	inter_hash[hash_combine] 						= obj_string.hash
-// 	current_vm.inter_strings[obj_string.hash] = obj_string
-
-// 	pop_offset(2)
-// 	push(OBJECT_VAL(obj_string,.OBJ_STRING))
-// }
 
 
 

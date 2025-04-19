@@ -1,8 +1,12 @@
 package OScriptVariant
 
-
-Transform2D :: struct { using base : Object, data: mat2x3 }
-
+Any         :: struct 
+{ 
+	using base: Object, 
+	etype	  : ValueType,
+	id   	  : i16, 
+	mem  	  : [32]u8 
+}
 
 
 create_T :: proc($T: typeid, type : ObjectType) -> ^T {
@@ -20,38 +24,19 @@ create_T :: proc($T: typeid, type : ObjectType) -> ^T {
 }
 
 
-// Transform
-create_transform2_ptr :: proc(x,y,o: ^Vector2d) -> ^Transform2D { 
 
-	// Nota(jstn): busca na lista livre
-	if sucess, obj := PEEK_OBJECT_FROM_FREELIST(.OBJ_TRANSFORM2); sucess { 
+create_any_ptr :: proc(type: ValueType, id : i16 ) -> ^Any { 
 
-		t := (^Transform2D)(obj)
-		t.data[0] = x^
-		t.data[1] = y^
-		t.data[2] = o^
+	if sucess, obj := PEEK_OBJECT_FROM_FREELIST(.OBJ_ANY); sucess {
+		obj_t       := (^Any)(obj)
+		obj_t.etype  = type
+		obj_t.id     = id
+		return obj_t
+	} 
 
-		return t
-	}
-
-	t := create_T(Transform2D,.OBJ_TRANSFORM2) 
-
-	t.data[0] = x^
-	t.data[1] = y^
-	t.data[2] = o^
-
-	return t
-}
-
-
-create_transform2_mat2x3_ptr :: proc(m: ^mat2x3) -> ^Transform2D { 
-	t := create_T(Transform2D,.OBJ_TRANSFORM2) 
-	t.data = m^
-	return t
-}
-
-create_transform2_no_data_ptr :: proc() -> ^Transform2D { 
-	t := create_T(Transform2D,.OBJ_TRANSFORM2) 
+	t      := create_T(Any,.OBJ_ANY)
+	t.etype = type
+	t.id    = id
 	return t
 }
 

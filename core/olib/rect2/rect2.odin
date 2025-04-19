@@ -103,6 +103,14 @@ _expand :: #force_inline proc "contextless" (r,o: ^Rect2,to: ^Vec2) {
 _get_center :: #force_inline proc "contextless" (r: ^Rect2,o: ^Vec2) { o^ = (r[0]+r[1])*0.5 }
 _get_area   :: #force_inline proc "contextless" (r: ^Rect2,o: ^Float) { o^ = r[1].x*r[1].y }
 
+_get_support :: #force_inline proc "contextless" (r: ^Rect2,direction,support: ^Vec2) { 
+	
+	if direction.x > 0.0 do support.x += r[1].x
+	if direction.y > 0.0 do support.y += r[1].y
+
+	support.x += r[0].x
+	support.y += r[0].y
+}
 
 _grow :: #force_inline proc "contextless" (r,o: ^Rect2,offset: ^Float) {
 	o[0] = r[0]-offset^
@@ -153,7 +161,6 @@ _has_no_area :: #force_inline proc "contextless" (r: ^Rect2, o: ^bool)
 
 _intersects :: #force_inline proc "contextless" (r0,r1: ^Rect2, include_borders:= true) -> bool
 {
-
 	position0   := &r0[0]
 	size0  	    := &r0[1]
 
@@ -167,7 +174,8 @@ _intersects :: #force_inline proc "contextless" (r0,r1: ^Rect2, include_borders:
 		if position0.y > position1.y+size1.y do return false
 		if position0.y+size0.y < position1.y do return false
 	}
-	else {
+	else 
+	{
 		if position0.x >= position1.x+size1.x do return false
 		if position0.x+size0.x <= position1.x do return false
 		if position0.y >= position1.y+size1.y do return false

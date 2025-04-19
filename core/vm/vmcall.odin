@@ -1,3 +1,5 @@
+#+private
+
 package OScriptVM
 
 
@@ -65,33 +67,22 @@ call_functionID:: #force_inline proc(funcID: FunctionID, #any_int argc: Int, fun
 call_native_function ::  #force_inline proc(func : ^Value, #any_int argc,default_arity: Int, has_error: ^bool) 
 {
 	native_function := AS_OP_FUNC_PTR(func)
-	args			:= current_vm.stack[current_vm.tos-argc-default_arity:][:argc+default_arity]
+
+	// Nota(jstn): prepara o estado de chamada
+	call_state       := &current_vm.call_state
+	call_state.args	  = current_vm.stack[current_vm.tos-argc-default_arity:][:argc+default_arity]
+	call_state.argc   = argc
+	
 	pop_offset(argc+default_arity)
 
-
-	result  := peek_cptr()
-	#force_inline native_function(argc,args,result,&current_vm.error)
+	call_state.result = peek_cptr()
+	#force_inline native_function(call_state)
 				
-	if current_vm.error.error { 
-		runtime_error(current_vm.error.msg_str)
-		has_error^ = true
-	}
-	
-	if current_vm.error.warning {
-		runtime_error(current_vm.error.msg_str)
-				// OBJ_CALL_RESET(&current_vm.error)
-	}
+	if      call_state.has_error   { runtime_error(get_error_msg()); has_error^ = true              }
+	else if call_state.has_warning { runtime_error(get_error_msg()); call_state.has_warning = false }
 
 	push_empty()
-	
-	// //Nota(jstn): como possuem metodos nativos que podem alocar memoria entao, aciona o GC
-	// #force_inline trigger_gc()
 }
-
-
-
-
-
 
 
 // Nota(jstn): para o uso extreno da VM

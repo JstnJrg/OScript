@@ -17,6 +17,7 @@ linalg :: linalg
 math   :: math
 
 Value 				:: variant.Value
+CallState 			:: variant.CallState
 Vec2                :: variant.Vector2d
 Int 				:: types.Int
 Float				:: types.Float

@@ -1,3 +1,5 @@
+#+private
+
 package OScriptVM
 
 
@@ -8,11 +10,12 @@ import_stmt :: proc(bp: BindPower) -> ^Node {
 
 
 	expect(.Identifier,"expected a import name.")
-
 	import_name := peek_p()
 
-	if !at(.From) do return import_native_stmt(import_name,loc)
+	// Nota(jstn): carrega o script
+	if has_error() do return create_bad_node(peek_c(),loc)
 
+	if !at(.From) do return import_native_stmt(import_name,loc)
 
 	expect(.From,  "expected 'from' after import name.")
 	expect(.String,"expected import path.")
@@ -77,6 +80,10 @@ import_stmt :: proc(bp: BindPower) -> ^Node {
 	// Nota(jstn): dependecias
 	set_enclosing_dependencies(enclosing_dep)
 
+    //Nota(jstn): prepass
+    register_prepass()
+    prepass()
+
 	// start
 	advance()
 	skip()
@@ -105,9 +112,23 @@ class_stmt :: proc(bp: BindPower) -> ^Node {
 
 	loc := peek_clocalization(); advance()
 	
-	expect(.Identifier,"expected a class name.")
+	expect(.Identifier,"expected a class name.")	
 	class_name := peek_p()
 
+
+	// herança
+	super_name : string
+	has_super  : bool
+
+	if at(.Extends)
+	{
+		advance()
+		expect(.Identifier,"expected superclass name after 'extends'.")
+		super_name = peek_p().text
+		has_super  = true
+	}
+
+	// 
 	skip_newline2(1)
 	expect(.Open_Brace,"expected '{' after class name")
 
@@ -115,10 +136,12 @@ class_stmt :: proc(bp: BindPower) -> ^Node {
 	if !is_global_scope() do error("class must be in global scope.")
 	if has_error() do return create_bad_node(peek_p(),loc)
 
-
-
 	// 
 	class_node := create_class_node(class_name.text,loc)
+
+	// 
+	class_node.has_super = has_super
+	class_node.extends   = super_name
 
 	// 
 	fields_container  := create_container_node()
@@ -134,7 +157,6 @@ class_stmt :: proc(bp: BindPower) -> ^Node {
 	// 
 	      begin_class()
 	defer end_class()
-	
 
 	// Nota(jstn): declaramos antes, pois pode ser que dentro 
 	//  da class, pode haver metodos que estão instanciando a class
@@ -216,6 +238,7 @@ parse_method :: proc(bp:BindPower) -> ^Node {
 			error("method '",tk_method_name.text,"' has the same name as a previously declared method at (",_loc.line,",",_loc.column,").")
 	}
 
+
 	// =========================================================
 	container        := create_container_node()
 	args             := &container.elements
@@ -228,9 +251,9 @@ parse_method :: proc(bp:BindPower) -> ^Node {
 		  begin_function( tk_method_name.text == "init" ? .TYPE_INITIALIZER: .TYPE_METHOD)
 	defer end_function()
 
-		  begin_scope()
-	defer end_scope()
-
+          begin_scope()
+    defer end_scope()
+	
 
 	for !is_eof() && !has_error() && !at(.Close_Paren) 
 	{
@@ -258,9 +281,9 @@ parse_method :: proc(bp:BindPower) -> ^Node {
 
 
 	class_declare_method(&tk_method_name) //depois dos parametros, para evitar que uma função seja seu proprio parametro
+	
 	body  := block_stmt(.DEFAULT)
 	pbody := create_block_node(container,scope_get_local_count(),loc)
-
 
 	// Nota(jstn): caso esteja no constructor, e o return não foi declarado explicitamente
 	// pelo usuario então devemos nos certificar que o metodo vai retornar a instancia
@@ -269,16 +292,13 @@ parse_method :: proc(bp:BindPower) -> ^Node {
 		slot        := -1
 		scope_get_var_index(self_tk,&slot)
 
-		local_count := scope_get_local_count_from_depth(0)
+		local_count := ast_block_get_local_count(body)+ast_block_get_local_count(pbody)
 		ireturn     := create_return_node(create_named_node(self_tk.text,true,slot,loc),local_count,loc)
 		block_append_node(body,ireturn)
 	} 
 
-
-
 	return create_function_node(tk_method_name.text,pbody,body,arity,loc)
 }
-
 
 
 fn_stmt :: proc(bp: BindPower) -> ^Node {
@@ -288,10 +308,11 @@ fn_stmt :: proc(bp: BindPower) -> ^Node {
 	expect(.Identifier,"expected a function name after 'fn'.")
 	tk_function_name := peek_p()
 
+	// Nota(jstn): o prepass já declara as funcções
 	// verifica se existe uma declaração global
-	if has, gdata :=  global_check_redeclaration_var(tk_function_name); has {
-	     error("function '",tk_function_name.text,"' has the same name as a previously declared",kind2string(gdata.kind)," at (",gdata.pos.line,",",gdata.pos.column,").")
-	}
+	// if has, gdata :=  global_check_redeclaration_var(tk_function_name); has {
+	//      error("function '",tk_function_name.text,"' has the same name as a previously declared",kind2string(gdata.kind)," at (",gdata.pos.line,",",gdata.pos.column,").")
+	// }
 
 	if is_global_scope() do return parse_fn(loc)
 
@@ -302,11 +323,9 @@ fn_stmt :: proc(bp: BindPower) -> ^Node {
 
 parse_fn :: proc(loc: Localization) -> ^Node {
 
-
 	tk_function_name := peek_p()
 	container        := create_container_node()
 	args             := &container.elements
-
 
 	expect(.Open_Paren," expected '(' after function name.")
 	arity : int
@@ -316,7 +335,6 @@ parse_fn :: proc(loc: Localization) -> ^Node {
 
 		  begin_scope()
 	defer end_scope()
-
 
 	for !is_eof() && !has_error() && !at(.Close_Paren) 
 	{
@@ -332,7 +350,6 @@ parse_fn :: proc(loc: Localization) -> ^Node {
 			return create_bad_node(peek_p(),loc)
 		}
 	}
-
 
 	expect(.Close_Paren," expected ')' after function parameters.")
 	skip_newline2(1)
@@ -370,14 +387,11 @@ set_stmt   :: proc(bp: BindPower) -> ^Node {
 	     error("variable '",tk_var_name.text,"' has the same name as a previously declared",kind2string(gdata.kind)," at (",gdata.pos.line,",",gdata.pos.column,").")
 	}
 
-
 	if at(.Equal) { advance(); rhs = expression(bp) }
 	else do rhs = create_literal_node(.OP_NIL,loc)
 
-
 	// Nota(jstn): declara como global
 	global_declare_var(tk_var_name,loc)
-
 
 	return create_define_node(tk_var_name.text,rhs,false,loc)
 }
@@ -391,7 +405,6 @@ set_stmt_local :: proc(bp: BindPower ) -> ^Node {
 
 	expect(.Identifier,"expected a variable name after 'set'.")
 	tk_var_name := peek_p()
-
 
 	if token_len(&tk_var_name) > MAX_VARIABLE_NAME {
 		error("variable name cannot be longer than ",MAX_VARIABLE_NAME," characters.")
@@ -500,7 +513,6 @@ for_stmt :: proc(bp: BindPower ) -> ^Node {
 	_body      : ^Node
 	_ibody     : ^Node
 	 
-
 	// for i < 0,10,1
 
 	expect(.Identifier,"expected loop variable name after 'for'.")
@@ -523,7 +535,6 @@ for_stmt :: proc(bp: BindPower ) -> ^Node {
 	
 	scope_declare_var(tk_var_name,.ID,loc)
 	
-
 	// start
 	_start = expression(bp)
 	expect(.Comma,"expected ',' after initialization expression.")
@@ -553,10 +564,8 @@ for_stmt :: proc(bp: BindPower ) -> ^Node {
 	body      := _body
 	ibody     := _ibody
 
-
 	return create_for_node(start,condition,increment,body,ibody,loc)
 }
-
 
 
 match_stmt :: proc(bp: BindPower) -> ^Node {
@@ -587,7 +596,7 @@ match_stmt :: proc(bp: BindPower) -> ^Node {
 		if at(.Case)
 		{
 			ncases += 1
-			if ncases > MAX_MATCH_CASE { error("too many match cases."); break}
+			if ncases > MAX_MATCH_CASE { error("too many match cases."); break }
 
 			advance()
 
@@ -619,7 +628,6 @@ match_stmt :: proc(bp: BindPower) -> ^Node {
 }
 
 
-
 block_stmt :: proc(bp: BindPower, loop := false) -> ^Node {
 
 	loc := peek_clocalization() ; advance()
@@ -633,7 +641,7 @@ block_stmt :: proc(bp: BindPower, loop := false) -> ^Node {
 		  begin_scope()
 	defer end_scope()
 
-	// Nota(jstn): registra como corpo de um loop.
+	// Nota(jstn): registra como bloco de um loop.
 	if       loop do begin_loop(scope_get_depth())
 	defer if loop do end_loop()
 
@@ -642,8 +650,6 @@ block_stmt :: proc(bp: BindPower, loop := false) -> ^Node {
 		stmt_node := parse_stmt(bp)
 		append(args,stmt_node)
 	}
-
-
 
 	expect(.Close_Brace,"expected closing '}' after block body.")
 	return create_block_node(container,scope_get_local_count(),loc)
@@ -660,12 +666,9 @@ match_block_stmt :: proc(bp: BindPower) -> ^Node {
 	args      := &container.elements
 	has_brace : bool
 
-	// if at(.Open_Brace) { advance(); has_brace = true}
-
 	//
 		  begin_scope()
 	defer end_scope()
-
 
 	for !is_eof() && !has_error() && !at(.Case) && !at(.Close_Brace)
 	{
@@ -674,14 +677,8 @@ match_block_stmt :: proc(bp: BindPower) -> ^Node {
 		skip()
 	}
 
-	// if has_brace do expect(.Close_Brace,"expected closing '}' after block body.")
-	
-	
-
 	return create_block_node(container,scope_get_local_count(),loc)
 }
-
-
 
 
 break_stmt :: proc(bp: BindPower) -> ^Node {
@@ -696,14 +693,11 @@ continue_stmt :: proc(bp: BindPower) -> ^Node {
 	return create_continue_node(scope_get_local_count_from_depth(get_loop_scope_depth()),loc)
 }
 
-
-
 return_stmt  :: proc(bp: BindPower) -> ^Node {
 
 	loc := peek_clocalization(); advance()
 
 	if !is_function() { error("you cannot use a return statement in the file scope."); return create_bad_node(peek_p(),loc)}
-
 
 	// Nota(jstn): caso seja um init, então é um construtor
 	// uma vez que só uma class tem essa prerrogativa de atribuir
@@ -731,7 +725,3 @@ return_stmt  :: proc(bp: BindPower) -> ^Node {
 	local_count := scope_get_local_count_from_depth(0)
 	return create_return_node(rhs,local_count,loc)
 }
-
-
-// 
-token_len :: proc(t: ^Token) -> int { return len(t.text) }

@@ -2,237 +2,185 @@
 
 package OScriptRect2D
 
-// abs :: proc(argc: Int, args: []Value,result: ^Value, call_error_p : ^ObjectCallError) 
-// {
-// 	argc := argc-1
 
-// 	when OSCRIPT_ALLOW_RUNTIME_CHECK do if argc != 0 { 
-// 		CALL_ERROR_STRING(call_error_p," 'abs' function expects '0' arg, but got ",argc,".")
-// 		return
-// 	}
+error_msg :: proc(fn_name: string, expected: Int, be: string ,call_state: ^CallState) {
+	CALL_ERROR_STRING(&call_state.error_bf,"'",fn_name,"' function expects '",expected,"' args, but got ",call_state.argc,", and the argument must be ",be,".")
+	call_state.has_error = true
+}
 
+error_msg0 :: proc(fn_name: string, expected : Int ,call_state: ^CallState) { 
+	CALL_ERROR_STRING(&call_state.error_bf,"'",fn_name,"' function expects '",expected,"' args, but got ",call_state.argc,".") 
+	call_state.has_error = true
+}
 
-// 	rect    : Rect2
-// 	rect2_0 := AS_RECT2_PTR(&args[argc])
-
-// 	_abs(rect2_0,&rect)
-// 	RECT2_VAL_PTR(result,&rect)
-// }
-
-// distance_to :: proc(argc: Int, args: []Value,result: ^Value, call_error_p : ^ObjectCallError) 
-// {
-// 	argc := argc-1
-
-// 	when OSCRIPT_ALLOW_RUNTIME_CHECK do if argc != 1 || !IS_VECTOR2D_PTR(&args[0]) { 
-// 		CALL_ERROR_STRING(call_error_p," 'distance_to' function expects '1' arg, but got ",argc,
-// 			" and the argument must be a ",TYPE_TO_STRING(.VECTOR2_VAL)," .")
-// 		return
-// 	}
-
-// 	rect2_0  := AS_RECT2_PTR(&args[argc])
-// 	pos_p    := AS_VECTOR2_PTR(&args[0])
-// 	distance : Float
-
-// 	_distance_to(rect2_0,pos_p,&distance)
-// 	NUMBER_VAL_PTR(result,distance)
-// }
-
-// encloses :: proc(argc: Int, args: []Value,result: ^Value, call_error_p : ^ObjectCallError) 
-// {
-// 	argc := argc-1
-
-// 	when OSCRIPT_ALLOW_RUNTIME_CHECK do if argc != 1 || !IS_RECT2_PTR(&args[0]) { 
-// 		CALL_ERROR_STRING(call_error_p," 'encloses' function expects '1' arg, but got ",argc,
-// 			" and the argument must be a ",TYPE_TO_STRING(.RECT2_VAL)," .")
-// 		return
-// 	}
-
-// 	rect2_0  := AS_RECT2_PTR(&args[argc])
-// 	rect2_1  := AS_RECT2_PTR(&args[0])
+error      :: proc(msg: string ,call_state: ^CallState) { CALL_ERROR_STRING(&call_state.error_bf,msg); call_state.has_error = true    }
+warning    :: proc(msg: string ,call_state: ^CallState) { CALL_WARNING_STRING(&call_state.error_bf,msg); call_state.has_warning = true }
 
 
-// 	ok : bool
-// 	_encloses(rect2_0,rect2_1,&ok)
-// 	BOOL_VAL_PTR(result,ok)
-// }
 
-// expand :: proc(argc: Int, args: []Value,result: ^Value, call_error_p : ^ObjectCallError) 
-// {
-// 	argc := argc-1
+abs :: proc(call_state: ^CallState) 
+{
+	if call_state.argc != 0 { error_msg0("abs",0,call_state); return }
 
-// 	when OSCRIPT_ALLOW_RUNTIME_CHECK do if argc != 1 || !IS_VECTOR2D_PTR(&args[0]) { 
-// 		CALL_ERROR_STRING(call_error_p," 'expand' function expects '1' arg, but got ",argc,
-// 			" and the argument must be a ",TYPE_TO_STRING(.VECTOR2_VAL)," .")
-// 		return
-// 	}
+	r  : Rect2
+	r0 := AS_RECT2_PTR(&call_state.args[0])
 
-// 	rect    : Rect2
-// 	rect2_0  := AS_RECT2_PTR(&args[argc])
-// 	pos_p    := AS_VECTOR2_PTR(&args[0])
+	_abs(r0,&r)
+	RECT2_VAL_PTR(call_state.result,&r)
+}
+
+distance_to :: proc(call_state: ^CallState) 
+{
+	if call_state.argc != 1 || !IS_VECTOR2D_PTR(&call_state.args[0]) { error_msg("distance_to",1,TYPE_TO_STRING(.VECTOR2_VAL),call_state); return }
+
+	r0  := AS_RECT2_PTR(&call_state.args[1])
+	p   := AS_VECTOR2_PTR(&call_state.args[0])
+	d   : Float
+
+	_distance_to(r0,p,&d)
+	FLOAT_VAL_PTR(call_state.result,d)
+}
+
+encloses :: proc(call_state: ^CallState) 
+{
+
+	if call_state.argc != 1 || !IS_RECT2_PTR(&call_state.args[0]) { error_msg("encloses",1,TYPE_TO_STRING(.RECT2_VAL),call_state); return }
+
+	r0  := AS_RECT2_PTR(&call_state.args[1])
+	r1  := AS_RECT2_PTR(&call_state.args[0])
+
+	ok : bool
+	_encloses(r0,r1,&ok)
+	BOOL_VAL_PTR(call_state.result,ok)
+}
+
+expand :: proc(call_state: ^CallState) 
+{
+	if call_state.argc != 1 || !IS_VECTOR2D_PTR(&call_state.args[0]) { error_msg("expand",1,TYPE_TO_STRING(.VECTOR2_VAL),call_state); return }
+
+	rect : Rect2
+	r0   := AS_RECT2_PTR  (&call_state.args[1])
+	p    := AS_VECTOR2_PTR(&call_state.args[0])
 	
-// 	_expand(rect2_0,&rect,pos_p)
-// 	RECT2_VAL_PTR(result,&rect)
+	_expand(r0,&rect,p)
+	RECT2_VAL_PTR(call_state.result,&rect)
+}
 
-// }
+get_center :: proc(call_state: ^CallState) 
+{
+	if call_state.argc != 0 { error_msg0("get_center",0,call_state); return	}
 
-// get_center :: proc(argc: Int, args: []Value,result: ^Value, call_error_p : ^ObjectCallError) 
-// {
-// 	argc := argc-1
+	v  : Vec2
+	r0 := AS_RECT2_PTR(&call_state.args[0])
 
-// 	when OSCRIPT_ALLOW_RUNTIME_CHECK do if argc != 0 { 
-// 		CALL_ERROR_STRING(call_error_p," 'get_center' function expects '0' arg, but got ",argc," .")
-// 		return
-// 	}
+	_get_center(r0,&v)
+	VECTOR2_VAL_PTR(call_state.result,&v)
+}
 
-// 	v        : Vec2
-// 	rect2_0  := AS_RECT2_PTR(&args[argc])
-// 	_get_center(rect2_0,&v)
+get_area :: proc(call_state: ^CallState) 
+{
+	if call_state.argc != 0 { error_msg0("get_area",0,call_state); return }
 
-// 	VECTOR2_VAL_PTR(result,&v)
+	r0  := AS_RECT2_PTR(&call_state.args[0])
+	a   : Float
 
-// }
+	_get_area(r0,&a)
+	FLOAT_VAL_PTR(call_state.result,a)
+}
 
-// get_area :: proc(argc: Int, args: []Value,result: ^Value, call_error_p : ^ObjectCallError) 
-// {
-// 	argc := argc-1
+grow :: proc(call_state: ^CallState) 
+{
+	offset : Float
+	if call_state.argc != 1 || !IS_FLOAT_CAST_PTR(&call_state.args[0],&offset) { error_msg("grow",1,TYPE_TO_STRING(.FLOAT_VAL),call_state); return }
 
-// 	when OSCRIPT_ALLOW_RUNTIME_CHECK do if argc != 0 { 
-// 		CALL_ERROR_STRING(call_error_p," get_area' function expects '0' arg, but got ",argc," .")
-// 		return
-// 	}
-
-// 	rect2_0  := AS_RECT2_PTR(&args[argc])
-// 	o        : Float
-// 	_get_area(rect2_0,&o)
-
-// 	NUMBER_VAL_PTR(result,o)
-
-// }
-
-// grow :: proc(argc: Int, args: []Value,result: ^Value, call_error_p : ^ObjectCallError) 
-// {
-// 	argc   := argc-1
-// 	offset : Float
-
-// 	when OSCRIPT_ALLOW_RUNTIME_CHECK do if argc != 1 || !IS_NUMERIC_PTR(&args[0],&offset) { 
-// 		CALL_ERROR_STRING(call_error_p," 'grow' function expects '1' arg, but got ",argc,
-// 			" and the argument must be a ",TYPE_TO_STRING(.NUMBER_VAL)," .")
-// 		return
-// 	}
-
-// 	rect    : Rect2
-// 	rect2_0  := AS_RECT2_PTR(&args[argc])
+	r  : Rect2
+	r0 := AS_RECT2_PTR(&call_state.args[1])
 	
-// 	_grow(rect2_0,&rect,&offset)
-// 	RECT2_VAL_PTR(result,&rect)
+	_grow(r0,&r,&offset)
+	RECT2_VAL_PTR(call_state.result,&r)
+}
 
-// }
 
-// grow_individual :: proc(argc: Int, args: []Value,result: ^Value, call_error_p : ^ObjectCallError) 
-// {
-// 	argc    := argc-1
-// 	offsets : [4]Float
+get_support :: proc(call_state: ^CallState) 
+{
+	if call_state.argc != 1 || !IS_VECTOR2D_PTR(&call_state.args[0]) { error_msg("get_support",1,TYPE_TO_STRING(.VECTOR2_VAL),call_state); return }
 
-// 	when OSCRIPT_ALLOW_RUNTIME_CHECK do for i in 0..<4 do if argc != 4 || !IS_NUMERIC_PTR(&args[i],&offsets[i]) { 
-// 		CALL_ERROR_STRING(call_error_p," 'grow_individual' function expects '4' arg, but got ",argc,
-// 			" and the argument must be a ",TYPE_TO_STRING(.NUMBER_VAL)," .")
-// 		return
-// 	}
-
-// 	rect    : Rect2
-// 	rect2_0  := AS_RECT2_PTR(&args[argc])
+	support   : Vec2
+	direction := AS_VECTOR2_PTR(&call_state.args[0])
 	
-// 	_grow_individual(rect2_0,&rect,&offsets)
-// 	RECT2_VAL_PTR(result,&rect)
+	r0 := AS_RECT2_PTR(&call_state.args[1])
+	_get_support(r0,direction,&support)
 
-// }
+	VECTOR2_VAL_PTR(call_state.result,&support)
+}
 
-// has_point :: proc(argc: Int, args: []Value,result: ^Value, call_error_p : ^ObjectCallError) 
-// {
-// 	argc := argc-1
 
-// 	when OSCRIPT_ALLOW_RUNTIME_CHECK do if argc != 1 || !IS_VECTOR2D_PTR(&args[0]) { 
-// 		CALL_ERROR_STRING(call_error_p," 'has_point' function expects '1' arg, but got ",argc,
-// 			" and the argument must be a ",TYPE_TO_STRING(.VECTOR2_VAL)," .")
-// 		return
-// 	}
+grow_individual :: proc(call_state: ^CallState) 
+{
+	offsets : [4]Float
+	for i in 0..<4 do if call_state.argc != 4 || !IS_FLOAT_CAST_PTR(&call_state.args[i],&offsets[i]) { error_msg("grow_individual",4,"float,float,float and float",call_state); return }
 
-// 	has      : bool
-// 	rect2_0  := AS_RECT2_PTR(&args[argc])
-// 	pos_p    := AS_VECTOR2_PTR(&args[0])
+	r   : Rect2
+	r0  := AS_RECT2_PTR(&call_state.args[4])
+
+	_grow_individual(r0,&r,&offsets)
+	RECT2_VAL_PTR(call_state.result,&r)
+}
+
+has_point :: proc(call_state: ^CallState) 
+{
+	if call_state.argc != 1 || !IS_VECTOR2D_PTR(&call_state.args[0]) { error_msg("has_point",1,TYPE_TO_STRING(.VECTOR2_VAL),call_state); return }
+
+	has      : bool
+	r0  := AS_RECT2_PTR(&call_state.args[1])
+	p   := AS_VECTOR2_PTR(&call_state.args[0])
 	
-// 	_has_point(rect2_0,pos_p,&has)
-// 	BOOL_VAL_PTR(result,has)
+	_has_point(r0,p,&has)
+	BOOL_VAL_PTR(call_state.result,has)
+}
 
-// }
+has_no_area :: proc(call_state: ^CallState) 
+{
+	if call_state.argc != 0 { error_msg0("has_no_area",0,call_state); return }
 
-// has_no_area :: proc(argc: Int, args: []Value,result: ^Value, call_error_p : ^ObjectCallError) 
-// {
-// 	argc := argc-1
+	has : bool
+	r0  := AS_RECT2_PTR(&call_state.args[0])
 
-// 	when OSCRIPT_ALLOW_RUNTIME_CHECK do if argc != 0 { 
-// 		CALL_ERROR_STRING(call_error_p," 'has_no_area' function expects '0' arg, but got ",argc," .")
-// 		return
-// 	}
-
-// 	has      : bool
-// 	rect2_0  := AS_RECT2_PTR(&args[argc])
-	
-// 	_has_no_area(rect2_0,&has)
-// 	BOOL_VAL_PTR(result,has)
-// }
+	_has_no_area(r0,&has)
+	BOOL_VAL_PTR(call_state.result,has)
+}
 
 
-// intersects :: proc(argc: Int, args: []Value,result: ^Value, call_error_p : ^ObjectCallError) 
-// {
-// 	argc := argc-1
+intersects :: proc(call_state: ^CallState) 
+{
+	if call_state.argc != 1 || !IS_RECT2_PTR(&call_state.args[0]) { error_msg("intersects",1,TYPE_TO_STRING(.RECT2_VAL),call_state); return }
 
-// 	when OSCRIPT_ALLOW_RUNTIME_CHECK do if argc != 1 || !IS_RECT2_PTR(&args[0]) { 
-// 		CALL_ERROR_STRING(call_error_p," 'intersects' function expects '1' arg, but got ",argc,
-// 			" and the argument must be a ",TYPE_TO_STRING(.RECT2_VAL)," .")
-// 		return
-// 	}
+	r0  := AS_RECT2_PTR(&call_state.args[1])
+	r1  := AS_RECT2_PTR(&call_state.args[0])
 
-// 	rect2_0  := AS_RECT2_PTR(&args[argc])
-// 	rect2_1  := AS_RECT2_PTR(&args[0])
+	BOOL_VAL_PTR(call_state.result,_intersects(r0,r1))
+}
 
-// 	BOOL_VAL_PTR(result,_intersects(rect2_0,rect2_1))
-// }
+merge :: proc(call_state: ^CallState) 
+{
+	if call_state.argc != 1 || !IS_RECT2_PTR(&call_state.args[0]) { error_msg("merge",1,TYPE_TO_STRING(.RECT2_VAL),call_state); return }
 
-// merge :: proc(argc: Int, args: []Value,result: ^Value, call_error_p : ^ObjectCallError) 
-// {
-// 	argc := argc-1
+	r   : Rect2
+	r0  := AS_RECT2_PTR(&call_state.args[1])
+	r1  := AS_RECT2_PTR(&call_state.args[0])
 
-// 	when OSCRIPT_ALLOW_RUNTIME_CHECK do if argc != 1 || !IS_RECT2_PTR(&args[0]) { 
-// 		CALL_ERROR_STRING(call_error_p," 'merge' function expects '1' arg, but got ",argc,
-// 			" and the argument must be a ",TYPE_TO_STRING(.RECT2_VAL)," .")
-// 		return
-// 	}
+	_merge(r0,r1,&r)
+	RECT2_VAL_PTR(call_state.result,&r)
+}
 
-// 	rect     : Rect2
-// 	rect2_0  := AS_RECT2_PTR(&args[argc])
-// 	rect2_1  := AS_RECT2_PTR(&args[0])
+clip :: proc(call_state: ^CallState) 
+{
+	if call_state.argc != 1 || !IS_RECT2_PTR(&call_state.args[0]) { error_msg("clip",1,TYPE_TO_STRING(.RECT2_VAL),call_state); return }
 
-// 	_merge(rect2_0,rect2_1,&rect)
+	r   : Rect2
+	r0  := AS_RECT2_PTR(&call_state.args[1])
+	r1  := AS_RECT2_PTR(&call_state.args[0])
 
-// 	RECT2_VAL_PTR(result,&rect)
-// }
-
-
-// clip :: proc(argc: Int, args: []Value,result: ^Value, call_error_p : ^ObjectCallError) 
-// {
-// 	argc := argc-1
-
-// 	when OSCRIPT_ALLOW_RUNTIME_CHECK do if argc != 1 || !IS_RECT2_PTR(&args[0]) { 
-// 		CALL_ERROR_STRING(call_error_p," 'clip' function expects '1' arg, but got ",argc,
-// 			" and the argument must be a ",TYPE_TO_STRING(.RECT2_VAL)," .")
-// 		return
-// 	}
-
-// 	rect     : Rect2
-// 	rect2_0  := AS_RECT2_PTR(&args[argc])
-// 	rect2_1  := AS_RECT2_PTR(&args[0])
-
-// 	_clip(rect2_0,rect2_1,&rect)
-// 	RECT2_VAL_PTR(result,&rect)
-// }
+	_clip(r0,r1,&r)
+	RECT2_VAL_PTR(call_state.result,&r)
+}

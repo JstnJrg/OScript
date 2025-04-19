@@ -1,3 +1,5 @@
+#+private
+
 package OScriptVM
 
 import constants  "oscript:constants"
@@ -21,7 +23,7 @@ GC_HEAP_GROW_FACTOR					:: constants.GC_HEAP_GROW_FACTOR
 	.OBJ_NONE       = 0,
 
 	//buffer 
-	.OBJ_TRANSFORM2 = 1 << 7,
+	.OBJ_ANY        = 1 << 4,
 
 	// heap
 	.OBJ_STRING     = 1 << 7,
@@ -190,8 +192,8 @@ trace_references :: proc()
 	for current_vm.gray_stack_count >= 0
 	{
 		obj := gray_stack[current_vm.gray_stack_count]
-		current_vm.gray_stack_count -= 1
 		blacken_object(obj)
+		current_vm.gray_stack_count -= 1
 	}
 
 }
@@ -211,7 +213,6 @@ blacken_object :: proc(obj: ^Object)
 		case .OBJ_CLASS          :
 		case .OBJ_NATIVE_CLASS   :
 		case .OBJ_PROGRAM        :
-		case .OBJ_TRANSFORM2     :
 		case .OBJ_FUNCTION       :
 		case .OBJ_NATIVE_FUNCTION:
 
@@ -301,15 +302,16 @@ sweep_t :: proc(t: ^thread.Thread)
 			if      previous == nil do vm.objects = aux
 			else do previous.next = aux
 			
-			// sucess := set_in_free_list(u)
+			sucess := set_in_free_list(u)
 
-			// when DEBUG_GC 
-			// { 
-			// 	if !sucess do  println("deleting.......",OBJ_TYPE(u)) 
-			// 	else       do  println("recycling.....",OBJ_TYPE(u))
-			// }			
+			when DEBUG_GC 
+			{ 
+				if !sucess do  println("deleting.......",OBJ_TYPE(u)) 
+				else       do  println("recycling.....",OBJ_TYPE(u))
+			}
+			else do if !sucess do #force_inline free_object(u)
+
 			
-			#force_inline free_object(u)
 
 		}
 	}

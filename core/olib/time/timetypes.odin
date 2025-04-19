@@ -8,7 +8,7 @@ import types	  "oscript:types"
 
 
 Value 				:: variant.Value
-// NativeFn 			:: variant.NativeFn
+CallState 			:: variant.CallState
 Int 				:: types.Int
 Float				:: types.Float
 ImportID            :: variant.ImportID
